@@ -148,42 +148,65 @@ export default function MapTab({ trip }: { trip: any }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setMapError(""); // 에러 초기화
     
     let lat: number | undefined;
     let lng: number | undefined;
     
-    if (form.mapLink) {
-      const match = form.mapLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (match) {
-        lat = parseFloat(match[1]);
-        lng = parseFloat(match[2]);
-      }
-    }
-
-    // 이름만 있고 좌표가 없다면 Geocoding API 찔러서 찾아주기
-    if ((!lat || !lng) && form.name) {
-      try {
-        const query = encodeURIComponent(`${form.name} ${form.address || trip.destination}`);
-        const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`);
-        const data = await res.json();
-        if (data.results && data.results.length > 0) {
-          lat = data.results[0].geometry.location.lat;
-          lng = data.results[0].geometry.location.lng;
+    try {
+      if (form.mapLink) {
+        const match = form.mapLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if (match) {
+          const pLat = parseFloat(match[1]);
+          const pLng = parseFloat(match[2]);
+          if (!isNaN(pLat) && !isNaN(pLng)) {
+            lat = pLat;
+            lng = pLng;
+          }
         }
-      } catch (e) {
-        console.warn("Geocode auto-fetch failed", e);
       }
-    }
+
+      // 이름만 있고 좌표가 없다면 Geocoding API 찔러서 찾아주기
+      if ((lat === undefined || lng === undefined) && form.name) {
+        try {
+          const query = encodeURIComponent(`${form.name} ${form.address || trip.destination}`);
+          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`);
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            lat = data.results[0].geometry.location.lat;
+            lng = data.results[0].geometry.location.lng;
+          }
+        } catch (e) {
+          console.warn("Geocode auto-fetch failed", e);
+        }
+      }
+
+      const payload = {
+        name: form.name,
+        address: form.address || undefined,
+        lat: (lat !== undefined && !isNaN(lat)) ? lat : undefined,
+        lng: (lng !== undefined && !isNaN(lng)) ? lng : undefined,
+        mapLink: form.mapLink || undefined,
+        category: form.category,
+        notes: form.notes || undefined
+      };
 
       if (editingId) {
-      await updatePlace({ placeId: editingId as any, name: form.name, address: form.address || undefined, lat, lng, mapLink: form.mapLink || undefined, category: form.category, notes: form.notes || undefined });
-    } else {
-      await addPlace({ tripId: trip._id, name: form.name, address: form.address || undefined, lat, lng, mapLink: form.mapLink || undefined, category: form.category, notes: form.notes || undefined });
+        await updatePlace({ placeId: editingId as any, ...payload });
+      } else {
+        await addPlace({ tripId: trip._id, ...payload });
+      }
+      
+      setShowForm(false);
+      setEditingId(null);
+      setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" });
+      if (lat !== undefined && lng !== undefined) focusPlace(lat, lng);
+    } catch (err: any) {
+      console.error("장소 저장 오류:", err);
+      setMapError(`저장 중 오류가 발생했습니다: ${err.message || "알 수 없는 에러"}`);
+    } finally {
+      setSaving(false);
     }
-    
-    setSaving(false); setShowForm(false); setEditingId(null);
-    setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" });
-    if (lat && lng) focusPlace(lat, lng);
   }
 
   function handleEdit(p: any) {
@@ -315,9 +338,9 @@ export default function MapTab({ trip }: { trip: any }) {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
                 <div key={p._id} className="glass glass-hover" style={{ padding: 16, cursor: "pointer", background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 4px -2px rgba(0,0,0,0.03)" }}
-                  onClick={() => handleEdit(p)}>
+                  onClick={() => focusPlace(p.lat, p.lng)}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 20 }}>{cat?.emoji || "📌"}</span>
                         <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>{p.name}</span>
@@ -326,10 +349,16 @@ export default function MapTab({ trip }: { trip: any }) {
                       {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>📍 {p.address}</p>}
                       {p.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.78rem", marginTop: 4 }}>{p.notes}</p>}
                     </div>
-                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: "0.72rem", color: "var(--danger)", background: "transparent", border: "none" }}
-                      onMouseEnter={e => e.currentTarget.style.background="rgba(239, 68, 68, 0.1)"}
-                      onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                      onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: "0.72rem", color: "var(--danger)", background: "transparent", border: "none", textAlign: "right" }}
+                        onMouseEnter={e => e.currentTarget.style.background="rgba(239, 68, 68, 0.1)"}
+                        onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                        onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
+                      <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: "0.72rem", color: "var(--accent)", background: "transparent", border: "none", textAlign: "right" }}
+                        onMouseEnter={e => e.currentTarget.style.background="rgba(99, 102, 241, 0.1)"}
+                        onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(p); }}>수정</button>
+                    </div>
                   </div>
                   {p.mapLink || (p.lat && p.lng) ? (
                     <a href={p.mapLink || `https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
