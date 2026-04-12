@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get('url');
@@ -10,66 +12,74 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. 단축 링크 해결 (리다이렉트 따라가기)
-    let finalUrl = url;
     const res = await fetch(url, { 
       method: 'GET',
       redirect: 'follow', 
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
     
-    finalUrl = res.url;
-
-    // 2. 최종 URL에서 좌표 추출 로직 적용
+    const finalUrl = res.url;
     let lat: number | undefined;
     let lng: number | undefined;
 
+    // --- 추출 로직 시작 ---
+
     // 패턴 1: @lat,lng
-    let match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-    
+    const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) {
+      lat = parseFloat(atMatch[1]);
+      lng = parseFloat(atMatch[2]);
+    }
+
     // 패턴 2: !3d lat !4d long (데스크톱/긴 주소)
-    if (!match) {
+    if (!lat) {
       const latMatch = finalUrl.match(/!3d(-?\d+\.\d+)/);
       const lngMatch = finalUrl.match(/!4d(-?\d+\.\d+)/);
-      if (latMatch && lngMatch) match = [null, latMatch[1], lngMatch[1]] as any;
-    }
-
-    // 패턴 3: q=lat,lng 또는 query=lat,lng 패턴
-    if (!match) {
-      const llMatch = finalUrl.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
-      if (llMatch) match = llMatch;
-    }
-
-    // 패턴 4: 데이터 문자열 안의 좌표 직접 파싱 (data=...!3d...!4d...)
-    if (!lat && finalUrl.includes('!3d')) {
-       try {
-         const parts = finalUrl.split('!3d');
-         if (parts.length > 1) {
-           const latVal = parts[1].split('!')[0];
-           const lngPart = finalUrl.split('!4d');
-           if (lngPart.length > 1) {
-             const lngVal = lngPart[1].split('!')[0].split('?')[0];
-             const pLat = parseFloat(latVal);
-             const pLng = parseFloat(lngVal);
-             if (!isNaN(pLat) && !isNaN(pLng)) {
-               lat = pLat;
-               lng = pLng;
-             }
-           }
-         }
-       } catch (e) {
-         console.warn("Manual data coordinate extraction failed");
-       }
-    }
-
-    if (!lat && match) {
-      const pLat = parseFloat(match[1]);
-      const pLng = parseFloat(match[2]);
-      if (!isNaN(pLat) && !isNaN(pLng)) {
-        lat = pLat;
-        lng = pLng;
+      if (latMatch && lngMatch) {
+        lat = parseFloat(latMatch[1]);
+        lng = parseFloat(lngMatch[2]);
       }
+    }
+
+    // 패턴 3: q=lat,lng 또는 query=lat,lng
+    if (!lat) {
+      const llMatch = finalUrl.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (llMatch) {
+        lat = parseFloat(llMatch[1]);
+        lng = parseFloat(llMatch[2]);
+      }
+    }
+
+    // 패턴 4: Place ID 추출 (!1s 패턴) - 가장 정확함
+    if (!lat || isNaN(lat)) {
+      const placeIdMatch = finalUrl.match(/!1s(0x[0-9a-f]+:[0-9a-f]+)/i) || finalUrl.match(/place_id=([^&]+)/);
+      if (placeIdMatch && API_KEY) {
+        const placeId = placeIdMatch[1];
+        try {
+          const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${API_KEY}`);
+          const geoData = await geoRes.json();
+          if (geoData.results && geoData.results.length > 0) {
+            lat = geoData.results[0].geometry.location.lat;
+            lng = geoData.results[0].geometry.location.lng;
+          }
+        } catch (e) {
+          console.warn('Place ID Geocoding failed:', e);
+        }
+      }
+    }
+
+    // 패턴 5: data= 안의 좌표 (최후의 수단 파싱)
+    if (!lat && finalUrl.includes('!3d')) {
+       const parts = finalUrl.split('!3d');
+       const latPart = parts[1]?.split('!')[0];
+       const longParts = finalUrl.split('!4d');
+       const lngPart = longParts[1]?.split('!')[0]?.split('?')[0];
+       if (latPart && lngPart) {
+         lat = parseFloat(latPart);
+         lng = parseFloat(lngPart);
+       }
     }
 
     return NextResponse.json({ 

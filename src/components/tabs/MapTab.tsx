@@ -35,6 +35,15 @@ export default function MapTab({ trip }: { trip: any }) {
   const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<any>(null);
 
+  // 리스너 등록 (정보창 닫기)
+  useEffect(() => {
+    const handleClose = () => {
+      if (infoWindowRef.current) infoWindowRef.current.close();
+    };
+    window.addEventListener('closeGMapInfoWindow', handleClose);
+    return () => window.removeEventListener('closeGMapInfoWindow', handleClose);
+  }, []);
+
   // 구글 맵스 API 로드 및 초기화
   useEffect(() => {
     if (!apiKey) return;
@@ -85,12 +94,18 @@ export default function MapTab({ trip }: { trip: any }) {
       marker.addListener("click", () => {
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(`
-            <div style="padding: 14px 18px; min-width: 140px; background: #ffffff; cursor: pointer;" onclick="window.dispatchEvent(new CustomEvent('closeInfoWindow'))">
-              <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 2px;">
-                ${content}
+            <div style="padding: 0; min-width: 180px; font-family: sans-serif; overflow: hidden; border-radius: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">
+                  ${content}
+                </span>
+                <div 
+                  onclick="window.dispatchEvent(new CustomEvent('closeGMapInfoWindow'))"
+                  style="background: #e2e8f0; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 14px; font-weight: bold;"
+                >✕</div>
               </div>
-              <div style="font-size: 0.72rem; color: #64748b; font-weight: 500;">
-                지도를 보려면 닫기
+              <div style="padding: 12px 14px; font-size: 0.75rem; color: #64748b; font-weight: 500;">
+                지도를 보려면 닫기 버튼을 클릭하세요
               </div>
             </div>
           `);
@@ -307,8 +322,9 @@ export default function MapTab({ trip }: { trip: any }) {
         {apiKey ? (
           <>
             <style>{`
-              .gm-style-iw-c { padding: 16px !important; border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
-              .gm-style-iw-d { overflow: hidden !important; }
+              .gm-style-iw-c { padding: 0 !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
+              .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
+              .gm-style-iw-tc { display: none !important; } /* 말풍선 꼬리 숨김(선선택) or 유지 선택가능 */
               .gm-ui-hover-effect { display: none !important; }
             `}</style>
             <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
