@@ -195,7 +195,7 @@ export default function TripPage() {
       </div>
 
       {/* 탭 콘텐츠 */}
-      <main className="tab-content-safe-bottom" style={{ flex: 1, padding: "24px 16px 48px", maxWidth: 900, margin: "0 auto", width: "100%" }}>
+      <main className="tab-content-safe-bottom" style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%" }}>
         {activeTab === "bookings" && <BookingsTab trip={trip} nickname={nickname} />}
         {activeTab === "map" && <MapTab trip={trip} />}
         {activeTab === "weather" && <WeatherTab trip={trip} />}

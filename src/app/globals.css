@@ -280,9 +280,11 @@ label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; displ
   to { transform: translateY(0); opacity: 1; }
 }
 
+.tab-content-safe-bottom { padding: 24px 16px 80px; }
+
 /* 탭 콘텐츠 하단 여백 (모바일에서 탭바에 가리지 않도록 넉넉하게 부여) */
 @media (max-width: 640px) {
-  .tab-content-safe-bottom { padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+  .tab-content-safe-bottom { padding: 20px 16px 160px; padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
 
   /* 탭바를 하단으로 이동 */
   .tab-nav-wrapper {
