@@ -85,9 +85,12 @@ export default function MapTab({ trip }: { trip: any }) {
       marker.addListener("click", () => {
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(`
-            <div style="padding: 10px 32px 10px 10px; min-width: 140px;">
-              <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; line-height: 1.4; display: flex; align-items: center; gap: 6px;">
+            <div style="padding: 14px 18px; min-width: 140px; background: #ffffff; cursor: pointer;" onclick="window.dispatchEvent(new CustomEvent('closeInfoWindow'))">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 2px;">
                 ${content}
+              </div>
+              <div style="font-size: 0.72rem; color: #64748b; font-weight: 500;">
+                지도를 보려면 닫기
               </div>
             </div>
           `);
@@ -303,6 +306,11 @@ export default function MapTab({ trip }: { trip: any }) {
       <div className="glass" style={{ borderRadius: 16, overflow: "hidden", height: 380, position: "relative" }}>
         {apiKey ? (
           <>
+            <style>{`
+              .gm-style-iw-c { padding: 16px !important; border-radius: 16px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
+              .gm-style-iw-d { overflow: hidden !important; }
+              .gm-ui-hover-effect { display: none !important; }
+            `}</style>
             <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
             <button
               onClick={findMyLocation}
