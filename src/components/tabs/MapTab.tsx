@@ -33,6 +33,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
+  const infoWindowRef = useRef<any>(null);
 
   // 구글 맵스 API 로드 및 초기화
   useEffect(() => {
@@ -41,7 +42,8 @@ export default function MapTab({ trip }: { trip: any }) {
     
     function init() {
       if (mapRef.current && !mapInstance && (window as any).google?.maps) {
-        const map = new (window as any).google.maps.Map(mapRef.current, {
+        const google = (window as any).google;
+        const map = new google.maps.Map(mapRef.current, {
           center: { lat: 37.5, lng: 127 },
           zoom: 12,
           gestureHandling: "greedy",   // 손가락 1개로 이동 가능
@@ -50,6 +52,7 @@ export default function MapTab({ trip }: { trip: any }) {
           mapTypeControl: false,
         });
         setMapInstance(map);
+        infoWindowRef.current = new google.maps.InfoWindow();
       }
     }
 
@@ -76,10 +79,23 @@ export default function MapTab({ trip }: { trip: any }) {
     
     const bounds = new google.maps.LatLngBounds();
     let hasPoints = false;
+
+    // 마커 클릭 리스너 헬퍼
+    const addMarkerListener = (marker: any, content: string) => {
+      marker.addListener("click", () => {
+        if (infoWindowRef.current) {
+          infoWindowRef.current.setContent(`
+            <div style="padding: 4px 8px; font-family: sans-serif;">
+              <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${content}</div>
+            </div>
+          `);
+          infoWindowRef.current.open(mapInstance, marker);
+        }
+      });
+    };
     
     // 1. 숙소 (보라색 핀)
     accommodations.forEach(a => {
-      // 카테고리 필터
       if (selectedCat !== "all" && selectedCat !== "accommodation") return;
 
       if (a.lat && a.lng) {
@@ -88,11 +104,12 @@ export default function MapTab({ trip }: { trip: any }) {
           position: pos, map: mapInstance, title: a.name,
           icon: "http://maps.google.com/mapfiles/ms/icons/purple-dot.png"
         });
+        addMarkerListener(marker, `🏨 ${a.name}`);
         markersRef.current.push(marker);
         bounds.extend(pos);
         hasPoints = true;
       } else if (!a.lat || !a.lng) {
-        // 기존에 좌표 없이 생성된 숙소는 자동으로 좌표를 찾아 DB 업데이트
+        // ... (Geocoding API 생략 - 동일한 로직 유지)
         const query = encodeURIComponent(`${a.name} ${a.address || trip.destination}`);
         fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`)
           .then(res => res.json())
@@ -114,14 +131,16 @@ export default function MapTab({ trip }: { trip: any }) {
         if (p.lat && p.lng) {
           const pos = { lat: p.lat, lng: p.lng };
           let color = "red-dot";
-          if (p.category === "food") color = "orange-dot";
-          else if (p.category === "shopping") color = "pink-dot";
-          else if (p.category === "attraction") color = "blue-dot";
+          let emoji = "📌";
+          if (p.category === "food") { color = "orange-dot"; emoji = "🍜"; }
+          else if (p.category === "shopping") { color = "pink-dot"; emoji = "🛍️"; }
+          else if (p.category === "attraction") { color = "blue-dot"; emoji = "🏛️"; }
           
           const marker = new google.maps.Marker({
             position: pos, map: mapInstance, title: p.name,
             icon: `http://maps.google.com/mapfiles/ms/icons/${color}.png`
           });
+          addMarkerListener(marker, `${emoji} ${p.name}`);
           markersRef.current.push(marker);
           bounds.extend(pos);
           hasPoints = true;
@@ -155,7 +174,22 @@ export default function MapTab({ trip }: { trip: any }) {
     
     try {
       if (form.mapLink) {
-        const match = form.mapLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        // 1. @lat,lng 패턴 (모바일/표준)
+        let match = form.mapLink.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+        
+        // 2. !3dlat!4dlong 패턴 (데스크톱 검색 결과)
+        if (!match) {
+          const latMatch = form.mapLink.match(/!3d(-?\d+\.\d+)/);
+          const lngMatch = form.mapLink.match(/!4d(-?\d+\.\d+)/);
+          if (latMatch && lngMatch) match = [null, latMatch[1], lngMatch[1]] as any;
+        }
+
+        // 3. q=lat,lng 또는 ll=lat,lng 패턴
+        if (!match) {
+          const llMatch = form.mapLink.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+          if (llMatch) match = llMatch;
+        }
+
         if (match) {
           const pLat = parseFloat(match[1]);
           const pLng = parseFloat(match[2]);
