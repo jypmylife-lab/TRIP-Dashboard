@@ -85,8 +85,10 @@ export default function MapTab({ trip }: { trip: any }) {
       marker.addListener("click", () => {
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(`
-            <div style="padding: 4px 8px; font-family: sans-serif;">
-              <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${content}</div>
+            <div style="padding: 10px 32px 10px 10px; min-width: 140px;">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; line-height: 1.4; display: flex; align-items: center; gap: 6px;">
+                ${content}
+              </div>
             </div>
           `);
           infoWindowRef.current.open(mapInstance, marker);
@@ -196,6 +198,18 @@ export default function MapTab({ trip }: { trip: any }) {
           if (!isNaN(pLat) && !isNaN(pLng)) {
             lat = pLat;
             lng = pLng;
+          }
+        } else if (form.mapLink.startsWith("http")) {
+          // 서버 사이드 리졸버 호출 (단축 링크 해결)
+          try {
+            const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(form.mapLink)}`);
+            const data = await res.json();
+            if (data.lat && data.lng) {
+              lat = data.lat;
+              lng = data.lng;
+            }
+          } catch (e) {
+            console.warn("Link resolution API failed", e);
           }
         }
       }
