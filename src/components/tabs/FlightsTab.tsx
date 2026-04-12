@@ -97,60 +97,56 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                 {/* 티켓 상단 컬러 바 */}
                 <div style={{ 
                   background: isReturn ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #6366f1, #4f46e5)",
-                  padding: "10px 24px",
+                  padding: "10px 16px",
                   display: "flex", alignItems: "center", justifyContent: "space-between"
                 }}>
                   <span style={{ color: "#fff", fontSize: "0.72rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
                     {isReturn ? "🛬 귀국편" : "🛫 출국편"}
                   </span>
-                  <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.72rem" }}>
-                    {f.airline} · {f.flightNumber}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.72rem" }}>
+                      {f.airline} · {f.flightNumber}
+                    </span>
+                    <button
+                      style={{ padding: "3px 8px", fontSize: "0.7rem", color: "rgba(255,255,255,0.8)", background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", borderRadius: 5, flexShrink: 0 }}
+                      onClick={(e) => { e.stopPropagation(); removeFlight({ flightId: f._id }); }}>
+                      삭제
+                    </button>
+                  </div>
                 </div>
 
-                {/* 티켓 본문 */}
-                <div style={{ padding: "20px 24px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                  {/* 출발 */}
-                  <div style={{ flex: 1, minWidth: 80, textAlign: "center" }}>
-                    <div style={{ fontSize: "clamp(1.1rem, 3vw, 1.4rem)", fontWeight: 800, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
+                {/* 티켓 본문: 3열 그리드 */}
+                <div style={{ padding: "16px", display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "center" }}>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>출발</div>
+                    <div style={{ fontSize: "clamp(0.78rem, 2.5vw, 0.9rem)", fontWeight: 700, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
                       {f.departure}
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 4 }}>출발</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--accent)", marginTop: 2 }}>
+                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--accent)", marginTop: 4 }}>
                       {f.departureTime}
                     </div>
                   </div>
 
-                  {/* 화살표 */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, paddingBottom: 16 }}>
-                    <div style={{ width: 60, height: 1, background: "rgba(0,0,0,0.12)", position: "relative" }}>
-                      <div style={{ position: "absolute", right: -4, top: -4, fontSize: 10, color: "var(--text-muted)" }}>▶</div>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 4px 0" }}>
+                    <div style={{ width: 60, height: 1, background: "rgba(0,0,0,0.15)", position: "relative" }}>
+                      <div style={{ position: "absolute", right: -4, top: -4, fontSize: 9, color: "var(--text-muted)" }}>▶</div>
                     </div>
-                    <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{f.date}</span>
+                    <span style={{ fontSize: "0.6rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{f.date}</span>
                   </div>
 
-                  {/* 도착 */}
-                  <div style={{ flex: 1, minWidth: 80, textAlign: "center" }}>
-                    <div style={{ fontSize: "clamp(1.1rem, 3vw, 1.4rem)", fontWeight: 800, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>도착</div>
+                    <div style={{ fontSize: "clamp(0.78rem, 2.5vw, 0.9rem)", fontWeight: 700, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
                       {f.arrival}
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 4 }}>도착</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-secondary)", marginTop: 2 }}>
+                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-secondary)", marginTop: 4 }}>
                       {f.arrivalTime}
                     </div>
                   </div>
-
-                  {/* 삭제 버튼 */}
-                  <button style={{ padding: "6px 10px", fontSize: "0.75rem", color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", borderRadius: 6 }}
-                    onMouseEnter={e => e.currentTarget.style.background="rgba(239,68,68,0.08)"}
-                    onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                    onClick={(e) => { e.stopPropagation(); removeFlight({ flightId: f._id }); }}>
-                    삭제
-                  </button>
                 </div>
 
                 {f.notes && (
-                  <div style={{ padding: "8px 24px 14px", borderTop: "1px dashed rgba(0,0,0,0.06)" }}>
+                  <div style={{ padding: "8px 16px 12px", borderTop: "1px dashed rgba(0,0,0,0.06)" }}>
                     <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>📝 {f.notes}</span>
                   </div>
                 )}

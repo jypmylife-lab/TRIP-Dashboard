@@ -83,18 +83,20 @@ export default function AdminPage() {
   if (!isAuth) return null;
 
   return (
-    <div style={{ minHeight: "100vh", padding: "24px 20px", maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", padding: "16px" }}>
       {/* 헤더 */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
-        <div>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 700 }}>✈️ 여행 대시보드</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 4 }}>관리자 전용 — 전체 여행 목록</p>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn-ghost" style={{ fontSize: "0.8rem" }} onClick={() => { sessionStorage.removeItem("adminToken"); router.push("/admin/login"); }}>로그아웃</button>
-          <button className="btn-primary" onClick={openCreateModal}>
-          + 새 여행 만들기
-        </button>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontSize: "clamp(1.3rem, 5vw, 1.75rem)", fontWeight: 700 }}>✈️ 여행 대시보드</h1>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>관리자 전용 — 전체 여행 목록</p>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            <button className="btn-ghost" style={{ fontSize: "0.8rem", padding: "8px 12px" }} onClick={() => { sessionStorage.removeItem("adminToken"); router.push("/admin/login"); }}>로그아웃</button>
+            <button className="btn-primary" style={{ fontSize: "0.85rem", padding: "8px 14px" }} onClick={openCreateModal}>
+              + 새 여행
+            </button>
+          </div>
         </div>
       </div>
 

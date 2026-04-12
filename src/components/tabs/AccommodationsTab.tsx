@@ -136,17 +136,24 @@ export default function AccommodationsTab({ trip, nickname }: { trip: any; nickn
                     )}
                   </div>
 
-                  <div style={{ textAlign: "right", minWidth: 140 }}>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>체크인</div>
-                    <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)", marginBottom: 8 }}>{item.checkIn}</div>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>체크아웃</div>
-                    <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)" }}>{item.checkOut}</div>
+                  {/* 체크인/체크아웃 + 삭제버튼 */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginTop: 12, paddingTop: 12, borderTop: "1px dashed rgba(0,0,0,0.06)", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 20, flex: 1 }}>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>체크인</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>{item.checkIn}</div>
+                      </div>
+                      <div style={{ fontSize: "1.2rem", alignSelf: "center", color: "var(--text-muted)" }}>→</div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>체크아웃</div>
+                        <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>{item.checkOut}</div>
+                      </div>
+                    </div>
+                    <button style={{ padding: "5px 10px", fontSize: "0.75rem", color: "var(--danger)", background: "transparent", border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", borderRadius: 6, flexShrink: 0 }}
+                      onMouseEnter={e => e.currentTarget.style.background="rgba(239,68,68,0.08)"}
+                      onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                      onClick={(e) => { e.stopPropagation(); removeItem({ accommodationId: item._id }); }}>삭제</button>
                   </div>
-
-                  <button style={{ padding: "6px 10px", fontSize: "0.75rem", color: "var(--danger)", background: "transparent", border: "none", cursor: "pointer", borderRadius: 6, alignSelf: "flex-start" }}
-                    onMouseEnter={e => e.currentTarget.style.background="rgba(239,68,68,0.08)"}
-                    onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                    onClick={(e) => { e.stopPropagation(); removeItem({ accommodationId: item._id }); }}>삭제</button>
                 </div>
 
                 {item.notes && (

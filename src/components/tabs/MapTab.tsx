@@ -41,7 +41,14 @@ export default function MapTab({ trip }: { trip: any }) {
     
     function init() {
       if (mapRef.current && !mapInstance && (window as any).google?.maps) {
-        const map = new (window as any).google.maps.Map(mapRef.current, { center: { lat: 37.5, lng: 127 }, zoom: 12 });
+        const map = new (window as any).google.maps.Map(mapRef.current, {
+          center: { lat: 37.5, lng: 127 },
+          zoom: 12,
+          gestureHandling: "greedy",   // 손가락 1개로 이동 가능
+          fullscreenControl: false,
+          streetViewControl: false,
+          mapTypeControl: false,
+        });
         setMapInstance(map);
       }
     }
@@ -252,21 +259,19 @@ export default function MapTab({ trip }: { trip: any }) {
         )}
       </div>
 
-      {/* 카테고리 필터 UI */}
-      {places && places.length > 0 && (
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8 }} className="custom-scroll">
-          <button className={`badge ${selectedCat === "all" ? "badge-purple" : ""}`} onClick={() => setSelectedCat("all")} 
-            style={{ cursor: "pointer", background: selectedCat !== "all" ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== "all" ? "var(--text-secondary)" : undefined }}>
-            모두 보기
+      {/* 카테고리 필터 UI - 항상 표시 */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+        <button className={`badge ${selectedCat === "all" ? "badge-purple" : ""}`} onClick={() => setSelectedCat("all")} 
+          style={{ cursor: "pointer", background: selectedCat !== "all" ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== "all" ? "var(--text-secondary)" : undefined }}>
+          모두
+        </button>
+        {CATEGORIES.map(c => (
+          <button key={c.id} className={`badge ${selectedCat === c.id ? "badge-purple" : ""}`} onClick={() => setSelectedCat(c.id)} 
+            style={{ cursor: "pointer", background: selectedCat !== c.id ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== c.id ? "var(--text-secondary)" : undefined, display: "flex", alignItems: "center", gap: 3 }}>
+            {c.emoji} {c.label}
           </button>
-          {CATEGORIES.map(c => (
-            <button key={c.id} className={`badge ${selectedCat === c.id ? "badge-purple" : ""}`} onClick={() => setSelectedCat(c.id)} 
-              style={{ cursor: "pointer", background: selectedCat !== c.id ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== c.id ? "var(--text-secondary)" : undefined, display: "flex", alignItems: "center", gap: 4 }}>
-              {c.emoji} {c.label}
-            </button>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* 장소 목록 */}
       {places === undefined || accommodations === undefined ? <div style={{ textAlign: "center", padding: 40 }}><span className="spinner" style={{ margin: "0 auto" }} /></div>
