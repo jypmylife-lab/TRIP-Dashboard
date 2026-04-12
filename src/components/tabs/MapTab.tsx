@@ -236,11 +236,11 @@ export default function MapTab({ trip }: { trip: any }) {
             <button
               onClick={findMyLocation}
               style={{
-                position: "absolute", bottom: 20, right: 20,
+                position: "absolute", bottom: 80, right: 12,
                 width: 44, height: 44, borderRadius: "50%",
                 background: "#ffffff",
                 border: "1px solid rgba(0,0,0,0.1)",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", zIndex: 10,
                 fontSize: 20, color: "#4285F4"
