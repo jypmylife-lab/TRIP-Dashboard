@@ -110,18 +110,18 @@ export default function TripPage() {
                   <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>또는 기존 참여자 닉네임 이어서 사용하기</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {participants.map(p => {
-                      const isSelected = selectedOldNickname === p.nickname;
                       return (
                         <button key={p._id} type="button"
-                          onClick={() => {
-                            setInputNickname(p.nickname);
-                            setSelectedOldNickname(p.nickname);
+                          onClick={async () => {
+                            await addParticipant({ tripId: trip._id, nickname: p.nickname });
+                            localStorage.setItem(`nickname_${shareId}`, p.nickname);
+                            setNickname(p.nickname);
                           }}
                           style={{
                             padding: "7px 16px", borderRadius: 999, fontSize: "0.82rem", fontWeight: 700,
-                            background: isSelected ? "var(--accent)" : "rgba(0,0,0,0.04)",
-                            color: isSelected ? "#fff" : "var(--text-secondary)",
-                            border: `2px solid ${isSelected ? "var(--accent)" : "rgba(0,0,0,0.08)"}`,
+                            background: "rgba(0,0,0,0.04)",
+                            color: "var(--text-secondary)",
+                            border: "2px solid rgba(0,0,0,0.08)",
                             cursor: "pointer", transition: "all 0.15s"
                           }}>
                           👤 {p.nickname}

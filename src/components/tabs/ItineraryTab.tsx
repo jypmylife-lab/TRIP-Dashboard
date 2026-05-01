@@ -207,45 +207,48 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
     if (days.length === 0) return;
 
-    // 현재 포커스된 DAY 찾기 (클릭된 DAY 우선, 없으면 확장된 DAY 중 첫번째, 없으면 1일차)
-    let targetDayId: any = days[0]._id;
-    if (focusedDayId && expandedDays.has(focusedDayId)) {
-      targetDayId = focusedDayId;
-    } else if (expandedDays.size > 0) {
-      targetDayId = Array.from(expandedDays)[0];
-    } else if (days.length > 0) {
-      // 모두 접혀있다면 첫번째 날짜로
-      targetDayId = days[0]._id;
-    }
-
-    const dayItems = (allItems || []).filter((it: any) => it.dayId === targetDayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-    const places = dayItems.filter((it: any) => it.type === "place" && it.placeLat && it.placeLng);
-
-    if (places.length === 0) return;
+    // 확장된 모든 DAY의 장소를 지도에 표시 (모두 닫혀있다면 1일차 표시)
+    const targetDayIds = expandedDays.size > 0 ? Array.from(expandedDays) : (days.length > 0 ? [days[0]._id] : []);
 
     const bounds = new google.maps.LatLngBounds();
     const path: any[] = [];
+    let placeCount = 0;
 
-    places.forEach((p: any, idx: number) => {
-      const pos = { lat: p.placeLat, lng: p.placeLng };
-      path.push(pos);
-      bounds.extend(pos);
-
-      const marker = new google.maps.Marker({
-        position: pos,
-        map: mapInstance,
-        label: { text: (idx + 1).toString(), color: "white", fontWeight: "bold", fontSize: "12px" },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: "#6366f1",
-          fillOpacity: 1,
-          strokeColor: "white",
-          strokeWeight: 2,
-          scale: 12
-        }
-      });
-      markersRef.current.push(marker);
+    // 날짜 순서대로 정렬해서 경로 그리기
+    const sortedTargetDays = targetDayIds.sort((a: any, b: any) => {
+      const dayA = days.find(d => d._id === a)?.dayNumber || 0;
+      const dayB = days.find(d => d._id === b)?.dayNumber || 0;
+      return dayA - dayB;
     });
+
+    sortedTargetDays.forEach((dayId) => {
+      const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+      const places = dayItems.filter((it: any) => it.type === "place" && it.placeLat && it.placeLng);
+      
+      places.forEach((p: any, idx: number) => {
+        placeCount++;
+        const pos = { lat: p.placeLat, lng: p.placeLng };
+        path.push(pos);
+        bounds.extend(pos);
+
+        const marker = new google.maps.Marker({
+          position: pos,
+          map: mapInstance,
+          label: { text: (idx + 1).toString(), color: "white", fontWeight: "bold", fontSize: "12px" },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: "#6366f1",
+            fillOpacity: 1,
+            strokeColor: "white",
+            strokeWeight: 2,
+            scale: 12
+          }
+        });
+        markersRef.current.push(marker);
+      });
+    });
+
+    if (placeCount === 0) return;
 
     if (path.length > 1) {
       polylineRef.current = new google.maps.Polyline({
@@ -377,7 +380,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       </div>
 
       {/* 상단 지도 영역 (경로 표시) */}
-      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
+      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, position: "sticky", top: 16, zIndex: 50, border: "2px solid rgba(0,0,0,0.08)" }}>
         <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
         {!mapInstance && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
