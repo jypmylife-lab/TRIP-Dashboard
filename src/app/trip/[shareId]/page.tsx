@@ -25,6 +25,8 @@ export default function TripPage() {
   const trip = useQuery(api.trips.getByShareId, { shareId });
   const participants = useQuery(api.participants.listByTrip, trip ? { tripId: trip._id } : "skip");
   const addParticipant = useMutation(api.participants.add);
+  const removeParticipant = useMutation(api.participants.remove);
+  const updateNickname = useMutation(api.participants.updateNickname);
   const updateTrip = useMutation(api.trips.update);
 
   const [nickname, setNickname] = useState("");
@@ -162,11 +164,12 @@ export default function TripPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {participants?.map(p => (
-                <div key={p._id} style={{
-                  background: "rgba(0,0,0,0.1)", color: theme.text,
-                  padding: "5px 12px", fontSize: "0.74rem", fontWeight: 800, borderRadius: 999
-                }}>
-                  {p.nickname}
+                <div key={p._id} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(0,0,0,0.1)", color: theme.text, padding: "5px 12px", fontSize: "0.74rem", fontWeight: 800, borderRadius: 999 }}>
+                  <span>{p.nickname}</span>
+                  {isAdmin && (
+                    <button onClick={() => { if (confirm(`'${p.nickname}' 참가자를 삭제하시겠습니까?`)) removeParticipant({ participantId: p._id }); }}
+                      style={{ background: "transparent", border: "none", color: theme.text, opacity: 0.5, cursor: "pointer", padding: "0 2px", fontSize: "0.7rem", fontWeight: 900 }}>✕</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -176,7 +179,15 @@ export default function TripPage() {
                 <strong style={{ fontWeight: 800 }}>{nickname}</strong>
               </span>
               <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
-                onClick={() => { localStorage.removeItem(`nickname_${shareId}`); setNickname(""); }}>
+                onClick={async () => { 
+                  const newName = prompt("새로운 닉네임을 입력하세요 (입력 시 모든 기존 활동 내역의 이름도 함께 변경됩니다)", nickname);
+                  if (newName && newName.trim() && newName.trim() !== nickname) {
+                    const finalName = newName.trim();
+                    await updateNickname({ tripId: trip._id, oldNickname: nickname, newNickname: finalName });
+                    localStorage.setItem(`nickname_${shareId}`, finalName);
+                    setNickname(finalName);
+                  }
+                }}>
                 변경
               </button>
             </div>

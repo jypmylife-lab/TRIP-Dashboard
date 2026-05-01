@@ -24,3 +24,61 @@ export const remove = mutation({
     await ctx.db.delete(args.participantId);
   },
 });
+
+export const updateNickname = mutation({
+  args: { tripId: v.id("trips"), oldNickname: v.string(), newNickname: v.string() },
+  handler: async (ctx, args) => {
+    // 1. 참여자 레코드 갱신
+    const p = await ctx.db.query("participants")
+      .withIndex("by_tripId", q => q.eq("tripId", args.tripId))
+      .filter(q => q.eq(q.field("nickname"), args.oldNickname)).first();
+    
+    if (p) {
+      await ctx.db.patch(p._id, { nickname: args.newNickname });
+    } else {
+      await ctx.db.insert("participants", { tripId: args.tripId, nickname: args.newNickname, joinedAt: Date.now() });
+    }
+
+    // 2. 체크리스트 연동 업데이트
+    const checklists = await ctx.db.query("checklists").withIndex("by_tripId", q => q.eq("tripId", args.tripId)).collect();
+    for (const c of checklists) {
+      let changed = false;
+      const updates: any = {};
+      if (c.assignee === args.oldNickname) { updates.assignee = args.newNickname; changed = true; }
+      if (c.assignees && c.assignees.includes(args.oldNickname)) {
+        updates.assignees = c.assignees.map(a => a === args.oldNickname ? args.newNickname : a);
+        changed = true;
+      }
+      if (c.completedBy && c.completedBy.includes(args.oldNickname)) {
+        updates.completedBy = c.completedBy.map(a => a === args.oldNickname ? args.newNickname : a);
+        changed = true;
+      }
+      if (changed) await ctx.db.patch(c._id, updates);
+    }
+
+    // 3. 지출 내역 연동 업데이트
+    const expenses = await ctx.db.query("expenses").withIndex("by_tripId", q => q.eq("tripId", args.tripId)).collect();
+    for (const e of expenses) {
+      let changed = false;
+      const updates: any = {};
+      if (e.paidBy === args.oldNickname) { updates.paidBy = args.newNickname; changed = true; }
+      if (e.splitWith && e.splitWith.includes(args.oldNickname)) {
+        updates.splitWith = e.splitWith.map(a => a === args.oldNickname ? args.newNickname : a);
+        changed = true;
+      }
+      if (e.splitAmounts) {
+        updates.splitAmounts = e.splitAmounts.map(sa => sa.nickname === args.oldNickname ? { ...sa, nickname: args.newNickname } : sa);
+        changed = true;
+      }
+      if (changed) await ctx.db.patch(e._id, updates);
+    }
+
+    // 4. 일정 댓글 연동 업데이트
+    const comments = await ctx.db.query("itineraryComments").filter(q => q.eq(q.field("tripId"), args.tripId)).collect();
+    for (const c of comments) {
+      if (c.nickname === args.oldNickname) {
+        await ctx.db.patch(c._id, { nickname: args.newNickname });
+      }
+    }
+  }
+});

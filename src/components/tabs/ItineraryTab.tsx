@@ -80,6 +80,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const removeItem = useMutation(api.itinerary.removeItem);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [focusedDayId, setFocusedDayId] = useState<string | null>(null);
   const [showPlaceModal, setShowPlaceModal] = useState<string | null>(null);
   const [placeForm, setPlaceForm] = useState({ name: "", category: "attraction", address: "", time: "", lat: undefined as number|undefined, lng: undefined as number|undefined });
   const [placeTab, setPlaceTab] = useState<"saved" | "search">("saved");
@@ -197,9 +198,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
     if (days.length === 0) return;
 
-    // 현재 포커스된 DAY 찾기 (확장된 DAY 중 첫번째, 없으면 1일차)
+    // 현재 포커스된 DAY 찾기 (클릭된 DAY 우선, 없으면 확장된 DAY 중 첫번째, 없으면 1일차)
     let targetDayId: any = days[0]._id;
-    if (expandedDays.size > 0) {
+    if (focusedDayId && expandedDays.has(focusedDayId)) {
+      targetDayId = focusedDayId;
+    } else if (expandedDays.size > 0) {
       targetDayId = Array.from(expandedDays)[0];
     } else if (days.length > 0) {
       // 모두 접혀있다면 첫번째 날짜로
@@ -257,7 +260,12 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   function toggleDay(dayId: string) {
     setExpandedDays(prev => {
       const n = new Set(prev);
-      n.has(dayId) ? n.delete(dayId) : n.add(dayId);
+      if (n.has(dayId)) {
+        n.delete(dayId);
+      } else {
+        n.add(dayId);
+        setFocusedDayId(dayId);
+      }
       return n;
     });
   }
@@ -476,7 +484,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             address: item.placeAddress || "", time: item.time || "",
                                             lat: item.placeLat, lng: item.placeLng
                                           });
-                                        }} style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--text-secondary)", padding: "4px 6px", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>수정</button>
+                                        }} style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "var(--accent)", padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }} title="수정">✏️</button>
                                       )}
                                     </div>
                                   </div>

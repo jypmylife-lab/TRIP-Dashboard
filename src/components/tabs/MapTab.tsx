@@ -428,7 +428,7 @@ export default function MapTab({ trip }: { trip: any }) {
                   fontSize: 20, color: "#4285F4",
                   transition: "bottom 0.4s ease"
                 }}
-                title="내 위치 찾기"
+                title="현재 위치로 이동"
               >
                 📍
               </button>
