@@ -388,7 +388,6 @@ export default function MapTab({ trip }: { trip: any }) {
                 }}
                 title="현재 위치로 이동"
               >
-              >
                 📍
               </button>
             </>
