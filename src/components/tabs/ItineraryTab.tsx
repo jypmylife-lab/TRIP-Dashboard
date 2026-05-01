@@ -330,8 +330,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         google.maps.event.removeListener(listener);
       });
     }
-      });
-    }
   }, [mapInstance, allItems, expandedDays, days, focusedDayId]);
 
   function toggleDay(dayId: string) {
