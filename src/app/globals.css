@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css');
 @import "tailwindcss";
 
 :root {
@@ -21,6 +22,8 @@
   --yellow: #ffd54f;
   --sky: #90caf9;
   --lavender: #ce93d8;
+  --pink: #ffb7b2;
+  --lime: #dce775;
   --radius: 20px;
   --radius-sm: 12px;
 }
@@ -28,7 +31,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  font-family: 'Outfit', -apple-system, sans-serif;
+  font-family: 'Outfit', 'SUIT Variable', -apple-system, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
