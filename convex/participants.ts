@@ -45,12 +45,12 @@ export const updateNickname = mutation({
       let changed = false;
       const updates: any = {};
       if (c.assignee === args.oldNickname) { updates.assignee = args.newNickname; changed = true; }
-      if (c.assignees && c.assignees.includes(args.oldNickname)) {
-        updates.assignees = c.assignees.map(a => a === args.oldNickname ? args.newNickname : a);
+      if (Array.isArray(c.assignees) && c.assignees.includes(args.oldNickname)) {
+        updates.assignees = c.assignees.map((a: any) => a === args.oldNickname ? args.newNickname : a);
         changed = true;
       }
-      if (c.completedBy && c.completedBy.includes(args.oldNickname)) {
-        updates.completedBy = c.completedBy.map(a => a === args.oldNickname ? args.newNickname : a);
+      if (Array.isArray(c.completedBy) && c.completedBy.includes(args.oldNickname)) {
+        updates.completedBy = c.completedBy.map((a: any) => a === args.oldNickname ? args.newNickname : a);
         changed = true;
       }
       if (changed) await ctx.db.patch(c._id, updates);
@@ -62,12 +62,14 @@ export const updateNickname = mutation({
       let changed = false;
       const updates: any = {};
       if (e.paidBy === args.oldNickname) { updates.paidBy = args.newNickname; changed = true; }
-      if (e.splitWith && e.splitWith.includes(args.oldNickname)) {
-        updates.splitWith = e.splitWith.map(a => a === args.oldNickname ? args.newNickname : a);
+      if (Array.isArray(e.splitWith) && e.splitWith.includes(args.oldNickname)) {
+        updates.splitWith = e.splitWith.map((a: any) => a === args.oldNickname ? args.newNickname : a);
         changed = true;
       }
-      if (e.splitAmounts) {
-        updates.splitAmounts = e.splitAmounts.map(sa => sa.nickname === args.oldNickname ? { ...sa, nickname: args.newNickname } : sa);
+      if (Array.isArray(e.splitAmounts)) {
+        updates.splitAmounts = e.splitAmounts.map((sa: any) => 
+          sa && sa.nickname === args.oldNickname ? { ...sa, nickname: args.newNickname } : sa
+        );
         changed = true;
       }
       if (changed) await ctx.db.patch(e._id, updates);

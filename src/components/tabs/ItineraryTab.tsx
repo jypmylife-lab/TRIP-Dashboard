@@ -101,7 +101,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
-  const polylineRef = useRef<any>(null);
+  const polylineRefs = useRef<any[]>([]);
+  const myLocationMarkerRef = useRef<any>(null);
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
@@ -193,6 +194,43 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     }
   }, [showPlaceModal, placeTab, editPlaceModal, mapInstance, days]);
 
+  // 내 위치 실시간 추적 (일정 탭 지도용)
+  useEffect(() => {
+    if (!mapInstance || !navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      const google = (window as any).google;
+      if (!google?.maps) return;
+
+      if (!myLocationMarkerRef.current) {
+        myLocationMarkerRef.current = new google.maps.Marker({
+          position: { lat, lng },
+          map: mapInstance,
+          title: "내 위치",
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            scale: 8,
+            strokeColor: "white",
+            strokeWeight: 2,
+          },
+          zIndex: 999
+        });
+      } else {
+        myLocationMarkerRef.current.setPosition({ lat, lng });
+      }
+    }, (err) => console.warn("GPS watch failed", err), { enableHighAccuracy: true });
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      if (myLocationMarkerRef.current) {
+        myLocationMarkerRef.current.setMap(null);
+        myLocationMarkerRef.current = null;
+      }
+    };
+  }, [mapInstance]);
+
   // 지도 마커 및 경로 렌더링
   useEffect(() => {
     if (!mapInstance || allItems === undefined || days === undefined) return;
@@ -201,10 +239,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     // 기존 마커 및 선 지우기
     markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
-    if (polylineRef.current) {
-      polylineRef.current.setMap(null);
-      polylineRef.current = null;
-    }
+    polylineRefs.current.forEach(p => p.setMap(null));
+    polylineRefs.current = [];
 
     if (days.length === 0) return;
 
@@ -231,11 +267,12 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     sortedTargetDays.forEach((dayId) => {
       const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
       const places = dayItems.filter((it: any) => it.type === "place" && it.placeLat && it.placeLng);
+      const dayPath: any[] = [];
       
       places.forEach((p: any, idx: number) => {
         placeCount++;
         const pos = { lat: p.placeLat, lng: p.placeLng };
-        path.push(pos);
+        dayPath.push(pos);
         bounds.extend(pos);
         if (dayId === focusedDayId) {
           focusBounds.extend(pos);
@@ -257,21 +294,23 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         });
         markersRef.current.push(marker);
       });
+
+      // 날짜별 개별 경로 그리기 (날짜 간 연결되지 않도록)
+      if (dayPath.length > 1) {
+        const poly = new google.maps.Polyline({
+          path: dayPath,
+          geodesic: true,
+          strokeColor: "#6366f1",
+          strokeOpacity: 0.8,
+          strokeWeight: 3,
+          icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW }, offset: "50%" }],
+          map: mapInstance
+        });
+        polylineRefs.current.push(poly);
+      }
     });
 
     if (placeCount === 0) return;
-
-    if (path.length > 1) {
-      polylineRef.current = new google.maps.Polyline({
-        path,
-        geodesic: true,
-        strokeColor: "#6366f1",
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW }, offset: "50%" }]
-      });
-      polylineRef.current.setMap(mapInstance);
-    }
 
     if (focusPlaceCount > 0) {
       if (focusPlaceCount === 1) {
@@ -291,7 +330,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         google.maps.event.removeListener(listener);
       });
     }
-  }, [mapInstance, allItems, expandedDays, days]);
+      });
+    }
+  }, [mapInstance, allItems, expandedDays, days, focusedDayId]);
 
   function toggleDay(dayId: string) {
     setExpandedDays(prev => {

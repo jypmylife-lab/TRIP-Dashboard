@@ -336,12 +336,12 @@ export default function MapTab({ trip }: { trip: any }) {
             map: mapInstance,
             title: "내 위치",
             icon: {
-              path: (window as any).google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: "#6366f1",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
+               path: (window as any).google.maps.SymbolPath.CIRCLE,
+               scale: 8,
+               fillColor: "#4285F4",
+               fillOpacity: 1,
+               strokeColor: "white",
+               strokeWeight: 2,
             }
           });
         },
