@@ -475,28 +475,30 @@ export default function MapTab({ trip }: { trip: any }) {
             {/* 숙소 목록 */}
             {selectedCat === "all" || selectedCat === "accommodation" ? accommodations.map(a => (
               <div key={a._id} className="glass glass-hover" style={{ 
-                padding: 16, cursor: "pointer", 
-                background: "rgba(168,230,207,0.15)",
-                border: "2px solid var(--mint)",
-                borderRadius: 20
+                cursor: "pointer", 
+                background: "#ffffff",
+                border: "2px solid rgba(0,0,0,0.08)",
+                borderRadius: 20,
+                overflow: "hidden",
+                display: "flex", flexDirection: "column"
               }}
               onClick={() => focusPlace(a.lat, a.lng)}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 18 }}>🏨</span>
-                      <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{a.name}</span>
-                    </div>
-                    <span className="badge" style={{ marginBottom: 6, background: "var(--mint)", color: "#1a1a1a" }}>숙소</span>
-                    {a.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>📍 {a.address}</p>}
-                  </div>
+                <div style={{ background: "var(--mint)", padding: "10px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 1 }}>🏨 숙소</span>
                 </div>
-                {(a.lat && a.lng) || a.address ? (
-                  <a href={`https://maps.google.com/?q=${a.lat ? a.lat + ',' + a.lng : encodeURIComponent(a.address || a.name)}`} target="_blank" rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()} style={{ display: "inline-block", marginTop: 10, color: "var(--accent)", fontSize: "0.78rem", textDecoration: "none" }}>
-                    🔗 구글 지도에서 보기
-                  </a>
-                ) : null}
+                <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{a.name}</div>
+                  {a.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {a.address}</p>}
+                  
+                  {(a.lat && a.lng) || a.address ? (
+                    <div style={{ marginTop: "auto", paddingTop: 10 }}>
+                      <a href={`https://maps.google.com/?q=${a.lat ? a.lat + ',' + a.lng : encodeURIComponent(a.address || a.name)}`} target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()} style={{ display: "inline-block", color: "var(--accent)", fontSize: "0.78rem", textDecoration: "none", fontWeight: 700 }}>
+                        🔗 구글 지도에서 보기
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             )) : null}
             
@@ -504,35 +506,31 @@ export default function MapTab({ trip }: { trip: any }) {
             {places.filter(p => selectedCat === "all" || p.category === selectedCat).map(p => {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
-                <div key={p._id} className="glass glass-hover" style={{ padding: 16, cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}
+                <div key={p._id} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 20 }}>{cat?.emoji || "📌"}</span>
-                        <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>{p.name}</span>
-                      </div>
-                      <span className="badge" style={{ marginBottom: 6, background: "var(--lavender)", color: "#1a1a1a" }}>{cat?.label}</span>
-                      {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>📍 {p.address}</p>}
-                      {p.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.78rem", marginTop: 4 }}>{p.notes}</p>}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: "0.72rem", color: "var(--danger)", background: "transparent", border: "none", textAlign: "right" }}
-                        onMouseEnter={e => e.currentTarget.style.background="rgba(239, 68, 68, 0.1)"}
-                        onMouseLeave={e => e.currentTarget.style.background="transparent"}
-                        onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
-                      <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: "0.72rem", color: "var(--accent)", background: "transparent", border: "none", textAlign: "right" }}
-                        onMouseEnter={e => e.currentTarget.style.background="rgba(99, 102, 241, 0.1)"}
-                        onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                  <div style={{ background: "var(--lavender)", padding: "10px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "#1a1a1a", background: "rgba(0,0,0,0.06)", border: "none", borderRadius: 99, fontWeight: 700 }}
                         onClick={(e) => { e.stopPropagation(); handleEdit(p); }}>수정</button>
+                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "var(--danger)", background: "rgba(255,0,0,0.06)", border: "none", borderRadius: 99, fontWeight: 700 }}
+                        onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
                     </div>
                   </div>
-                  {p.mapLink || (p.lat && p.lng) ? (
-                    <a href={p.mapLink || `https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()} style={{ display: "inline-block", marginTop: 10, color: "var(--accent)", fontSize: "0.78rem", textDecoration: "none" }}>
-                      🔗 구글 지도에서 보기
-                    </a>
-                  ) : null}
+                  <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{p.name}</div>
+                    {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {p.address}</p>}
+                    {p.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.78rem", marginBottom: 4, padding: "8px", background: "rgba(0,0,0,0.03)", borderRadius: 8 }}>{p.notes}</p>}
+                    
+                    <div style={{ marginTop: "auto", paddingTop: 10 }}>
+                      {p.mapLink || (p.lat && p.lng) ? (
+                        <a href={p.mapLink || `https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()} style={{ display: "inline-block", color: "var(--accent)", fontSize: "0.78rem", textDecoration: "none", fontWeight: 700 }}>
+                          🔗 구글 지도에서 보기
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               );
             })}
