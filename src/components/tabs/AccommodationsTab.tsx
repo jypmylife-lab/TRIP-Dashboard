@@ -100,7 +100,7 @@ export default function AccommodationsTab({ trip, nickname }: { trip: any; nickn
                 {/* 호텔 헤더 바 */}
                 <div style={{ 
                   background: "var(--yellow)",
-                  padding: "12px 24px",
+                  padding: "16px 18px",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   borderBottom: "2px solid rgba(0,0,0,0.08)"
                 }}>
