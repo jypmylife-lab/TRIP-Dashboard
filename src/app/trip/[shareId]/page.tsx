@@ -47,17 +47,22 @@ export default function TripPage() {
     if (!inputNickname.trim() || !trip) return;
     const name = inputNickname.trim();
     
-    if (selectedOldNickname && selectedOldNickname !== name) {
-      // 기존 닉네임을 선택하고 다른 이름으로 수정한 경우 -> 닉네임 및 관련 데이터 일괄 업데이트
-      await updateNickname({ tripId: trip._id, oldNickname: selectedOldNickname, newNickname: name });
-    } else {
-      // 새 닉네임이거나 선택한 닉네임 그대로 입장한 경우
-      await addParticipant({ tripId: trip._id, nickname: name });
+    try {
+      if (selectedOldNickname && selectedOldNickname !== name) {
+        // 기존 닉네임을 선택하고 다른 이름으로 수정한 경우 -> 닉네임 및 관련 데이터 일괄 업데이트
+        await updateNickname({ tripId: trip._id, oldNickname: selectedOldNickname, newNickname: name });
+      } else {
+        // 새 닉네임이거나 선택한 닉네임 그대로 입장한 경우
+        await addParticipant({ tripId: trip._id, nickname: name });
+      }
+      
+      localStorage.setItem(`nickname_${shareId}`, name);
+      setNickname(name);
+      setSelectedOldNickname(null);
+    } catch (error: any) {
+      console.error("닉네임 설정 중 오류 발생:", error);
+      alert("닉네임 설정 중 오류가 발생했습니다: " + error.message);
     }
-    
-    localStorage.setItem(`nickname_${shareId}`, name);
-    setNickname(name);
-    setSelectedOldNickname(null);
   }
 
   const currentThemeColor = trip?.themeColor;

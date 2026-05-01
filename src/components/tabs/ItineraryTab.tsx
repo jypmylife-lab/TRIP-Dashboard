@@ -83,6 +83,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [focusedDayId, setFocusedDayId] = useState<string | null>(null);
   const [dragItem, setDragItem] = useState<any>(null);
   const [dragOverItem, setDragOverItem] = useState<any>(null);
+  const [reorderItem, setReorderItem] = useState<string | null>(null);
   const [showPlaceModal, setShowPlaceModal] = useState<string | null>(null);
   const [placeForm, setPlaceForm] = useState({ name: "", category: "attraction", address: "", time: "", lat: undefined as number|undefined, lng: undefined as number|undefined });
   const [placeTab, setPlaceTab] = useState<"saved" | "search">("saved");
@@ -215,8 +216,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     const targetDayIds = targetDayIdsArray.length > 0 ? targetDayIdsArray : (days.length > 0 ? [days[0]._id] : []);
 
     const bounds = new google.maps.LatLngBounds();
+    const focusBounds = new google.maps.LatLngBounds();
     const path: any[] = [];
     let placeCount = 0;
+    let focusPlaceCount = 0;
 
     // 날짜 순서대로 정렬해서 경로 그리기
     const sortedTargetDays = targetDayIds.sort((a: any, b: any) => {
@@ -234,6 +237,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         const pos = { lat: p.placeLat, lng: p.placeLng };
         path.push(pos);
         bounds.extend(pos);
+        if (dayId === focusedDayId) {
+          focusBounds.extend(pos);
+          focusPlaceCount++;
+        }
 
         const marker = new google.maps.Marker({
           position: pos,
@@ -266,11 +273,24 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       polylineRef.current.setMap(mapInstance);
     }
 
-    mapInstance.fitBounds(bounds);
-    const listener = google.maps.event.addListener(mapInstance, "idle", () => {
-      if (mapInstance.getZoom() > 15) mapInstance.setZoom(15);
-      google.maps.event.removeListener(listener);
-    });
+    if (focusPlaceCount > 0) {
+      if (focusPlaceCount === 1) {
+        mapInstance.setCenter({ lat: focusBounds.getNorthEast().lat(), lng: focusBounds.getNorthEast().lng() });
+        mapInstance.setZoom(15);
+      } else {
+        mapInstance.fitBounds(focusBounds);
+        const listener = google.maps.event.addListener(mapInstance, "idle", () => {
+          if (mapInstance.getZoom() > 15) mapInstance.setZoom(15);
+          google.maps.event.removeListener(listener);
+        });
+      }
+    } else {
+      mapInstance.fitBounds(bounds);
+      const listener = google.maps.event.addListener(mapInstance, "idle", () => {
+        if (mapInstance.getZoom() > 15) mapInstance.setZoom(15);
+        google.maps.event.removeListener(listener);
+      });
+    }
   }, [mapInstance, allItems, expandedDays, days]);
 
   function toggleDay(dayId: string) {
@@ -371,6 +391,22 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     await updateItem({ itemId: dayItems[dropIdx]._id, orderIndex: dayItems[dragIdx].orderIndex });
     setDragItem(null);
     setDragOverItem(null);
+  }
+
+  async function moveItemUp(item: any, dayItems: any[]) {
+    const idx = dayItems.findIndex((i: any) => i._id === item._id);
+    if (idx > 0) {
+      await updateItem({ itemId: item._id, orderIndex: dayItems[idx - 1].orderIndex });
+      await updateItem({ itemId: dayItems[idx - 1]._id, orderIndex: item.orderIndex });
+    }
+  }
+
+  async function moveItemDown(item: any, dayItems: any[]) {
+    const idx = dayItems.findIndex((i: any) => i._id === item._id);
+    if (idx < dayItems.length - 1) {
+      await updateItem({ itemId: item._id, orderIndex: dayItems[idx + 1].orderIndex });
+      await updateItem({ itemId: dayItems[idx + 1]._id, orderIndex: item.orderIndex });
+    }
   }
 
   if (days === undefined || allItems === undefined) {
@@ -500,18 +536,28 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
                                     {/* 액션 버튼 */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
-                                      {/* 드래그 핸들 */}
-                                      <div
-                                        draggable
-                                        onDragStart={() => setDragItem(item)}
-                                        onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
-                                        onDrop={() => handleDragDrop(dayItems)}
-                                        onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
-                                        style={{ width: 36, display: "flex", justifyContent: "center", cursor: "grab", padding: "4px 0", fontSize: 16, color: "rgba(0,0,0,0.35)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
-                                        title="드래그하여 순서 변경"
-                                      >☰</div>
+                                      {/* 드래그 및 순서 변경 */}
+                                      {reorderItem === item._id ? (
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center", background: "rgba(0,0,0,0.03)", padding: "4px 2px", borderRadius: 8 }}>
+                                          <button onClick={() => moveItemUp(item, dayItems)} disabled={idx === 0} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1 }}>⬆️</button>
+                                          <button onClick={() => moveItemDown(item, dayItems)} disabled={idx === dayItems.length - 1} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1 }}>⬇️</button>
+                                          <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 12, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>✕</button>
+                                        </div>
+                                      ) : (
+                                        <div
+                                          draggable
+                                          onDragStart={() => setDragItem(item)}
+                                          onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
+                                          onDrop={() => handleDragDrop(dayItems)}
+                                          onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
+                                          onClick={() => setReorderItem(item._id)}
+                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "grab", padding: "4px 0", fontSize: 16, color: "rgba(0,0,0,0.35)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
+                                          title="클릭 또는 드래그하여 순서 변경"
+                                        >☰</div>
+                                      )}
+                                      
                                       {/* 편집 버튼 */}
-                                      {item.type === "place" && (
+                                      {item.type === "place" && reorderItem !== item._id && (
                                         <button onClick={() => {
                                           setEditPlaceModal(item);
                                           setPlaceForm({
@@ -522,8 +568,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                         }} style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "5px 0", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>편집</button>
                                       )}
                                       {/* 삭제 버튼 */}
-                                      <button onClick={() => removeItem({ itemId: item._id })}
-                                        style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 0", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
+                                      {reorderItem !== item._id && (
+                                        <button onClick={() => removeItem({ itemId: item._id })}
+                                          style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 0", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
+                                      )}
                                     </div>
                                   </div>
 
