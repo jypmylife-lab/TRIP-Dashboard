@@ -176,7 +176,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     if (days.length === 0) return;
 
     // 현재 포커스된 DAY 찾기 (확장된 DAY 중 첫번째, 없으면 1일차)
-    let targetDayId = days[0]._id;
+    let targetDayId: any = days[0]._id;
     if (expandedDays.size > 0) {
       targetDayId = Array.from(expandedDays)[0];
     } else if (days.length > 0) {
