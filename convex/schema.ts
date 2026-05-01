@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // [강제 리프레시용 주석] 유료 플랜 전환 후 동기화를 위해 추가됨
   // 여행 목록
   trips: defineTable({
     title: v.string(),
@@ -96,4 +97,44 @@ export default defineSchema({
     category: v.string(),         // "food" | "transport" | "accommodation" | "activity" | "other"
     createdAt: v.number(),
   }).index("by_tripId", ["tripId"]),
+
+  // ─── 일정 DAY (DAY 1, DAY 2 ...) ─────────────────────────
+  itineraryDays: defineTable({
+    tripId: v.id("trips"),
+    dayNumber: v.number(),          // 1, 2, 3 ...
+    date: v.string(),               // "2026-06-13"
+    title: v.optional(v.string()),  // "오사카 도착일" 등 선택적 제목
+    createdAt: v.number(),
+  }).index("by_tripId", ["tripId"]),
+
+  // ─── 일정 내 개별 항목 (장소/메모) ────────────────────────
+  itineraryItems: defineTable({
+    dayId: v.id("itineraryDays"),
+    tripId: v.id("trips"),
+    orderIndex: v.number(),           // 정렬 순서
+    type: v.string(),                 // "place" | "memo"
+    // 장소 관련
+    placeName: v.optional(v.string()),
+    placeCategory: v.optional(v.string()),
+    placeAddress: v.optional(v.string()),
+    placeLat: v.optional(v.number()),
+    placeLng: v.optional(v.number()),
+    placeMapLink: v.optional(v.string()),
+    // 메모 관련
+    memo: v.optional(v.string()),
+    // 공통
+    time: v.optional(v.string()),                 // "10:00"
+    photos: v.optional(v.array(v.string())),      // Convex Storage ID 배열 (최대 5개)
+    createdAt: v.number(),
+  }).index("by_dayId", ["dayId"]).index("by_tripId", ["tripId"]),
+
+  // ─── 사진/항목별 댓글 ─────────────────────────────────────
+  itineraryComments: defineTable({
+    itemId: v.id("itineraryItems"),
+    photoId: v.string(),            // 어떤 사진에 달린 댓글인지 식별 (Storage ID)
+    tripId: v.id("trips"),
+    nickname: v.string(),           // 작성자 닉네임
+    text: v.string(),               // 댓글 내용
+    createdAt: v.number(),
+  }).index("by_itemId", ["itemId"]).index("by_photoId", ["photoId"]),
 });

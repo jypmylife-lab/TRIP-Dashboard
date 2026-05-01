@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
@@ -21,11 +21,39 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
   const [link, setLink] = useState("");
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [addingDefaults, setAddingDefaults] = useState(false);
 
   // 닉네임 목록 (등록된 참가자 + 현재 사용자)
   const nicknames = participants
     ? [...new Set([nickname, ...participants.map(p => p.nickname)])]
     : [nickname];
+
+  // 기본 준비물 목록
+  const DEFAULT_ITEMS = [
+    "여권", "환전, 해외 신용카드", "항공권 티켓", "여행자보험", "유심",
+    "세안용품", "기초화장품", "샤워용품", "비상약", "충전기", "변환플러그", "옷", "속옷",
+  ];
+
+  async function handleAddDefaults() {
+    setAddingDefaults(true);
+    const existingTexts = new Set((items || []).map(i => i.text));
+    for (const text of DEFAULT_ITEMS) {
+      if (!existingTexts.has(text)) {
+        // 담당자를 '모두'로 설정
+        await addItem({ tripId: trip._id, text, assignees: nicknames });
+      }
+    }
+    setAddingDefaults(false);
+  }
+
+  // 자동 생성 로직
+  useEffect(() => {
+    const autoKey = `checklist_auto_added_${trip._id}`;
+    if (items !== undefined && items.length === 0 && !addingDefaults && !localStorage.getItem(autoKey)) {
+      localStorage.setItem(autoKey, "true");
+      handleAddDefaults();
+    }
+  }, [items, addingDefaults, trip._id, nicknames]);
 
   function toggleAssignee(name: string, list: string[], setList: (l: string[]) => void) {
     setList(list.includes(name) ? list.filter(n => n !== name) : [...list, name]);
@@ -74,7 +102,9 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>📋 체크리스트</h2>
-        {total > 0 && <span className={`badge ${pct === 100 ? "badge-green" : "badge-purple"}`}>{done}/{total} 완료</span>}
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {total > 0 && <span className={`badge ${pct === 100 ? "badge-green" : "badge-purple"}`}>{done}/{total} 완료</span>}
+        </div>
       </div>
 
       {/* 진행률 바 */}
@@ -134,6 +164,11 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
           <p>아직 체크리스트가 없습니다</p>
           <p style={{ fontSize: "0.8rem", marginTop: 6 }}>여행 준비물이나 할 일을 추가해보세요!</p>
+          {addingDefaults && (
+            <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 24px", background: "rgba(0,0,0,0.04)", borderRadius: 12 }}>
+              <span className="spinner" /> 기본 준비물 추가 중...
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

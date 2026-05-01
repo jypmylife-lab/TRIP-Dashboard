@@ -4,8 +4,9 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import BookingsTab from "@/components/tabs/BookingsTab";
+import ItineraryTab from "@/components/tabs/ItineraryTab";
 import MapTab from "@/components/tabs/MapTab";
-import WeatherTab from "@/components/tabs/WeatherTab";
+import InfoTab from "@/components/tabs/InfoTab";
 import ChecklistTab from "@/components/tabs/ChecklistTab";
 import ExpensesTab from "@/components/tabs/ExpensesTab";
 import { THEME_COLORS } from "@/lib/theme";
@@ -13,7 +14,8 @@ import { THEME_COLORS } from "@/lib/theme";
 const TABS = [
   { id: "bookings", label: "예약", icon: "🎫" },
   { id: "map", label: "지도", icon: "🗺️" },
-  { id: "weather", label: "날씨", icon: "⛅" },
+  { id: "itinerary", label: "일정", icon: "📅" },
+  { id: "info", label: "정보", icon: "ℹ️" },
   { id: "checklist", label: "체크", icon: "📋" },
   { id: "expenses", label: "지출", icon: "💸" },
 ];
@@ -197,8 +199,9 @@ export default function TripPage() {
       {/* 탭 콘텐츠 */}
       <main className="tab-content-safe-bottom" style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%" }}>
         {activeTab === "bookings" && <BookingsTab trip={trip} nickname={nickname} />}
+        {activeTab === "itinerary" && <ItineraryTab trip={trip} nickname={nickname} />}
         {activeTab === "map" && <MapTab trip={trip} />}
-        {activeTab === "weather" && <WeatherTab trip={trip} />}
+        {activeTab === "info" && <InfoTab trip={trip} />}
         {activeTab === "checklist" && <ChecklistTab trip={trip} nickname={nickname} />}
         {activeTab === "expenses" && <ExpensesTab trip={trip} nickname={nickname} />}
       </main>

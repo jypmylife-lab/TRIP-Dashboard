@@ -11,6 +11,7 @@
 import type * as accommodations from "../accommodations.js";
 import type * as expenses from "../expenses.js";
 import type * as flights from "../flights.js";
+import type * as itinerary from "../itinerary.js";
 import type * as participants from "../participants.js";
 import type * as places from "../places.js";
 import type * as trips from "../trips.js";
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   accommodations: typeof accommodations;
   expenses: typeof expenses;
   flights: typeof flights;
+  itinerary: typeof itinerary;
   participants: typeof participants;
   places: typeof places;
   trips: typeof trips;

@@ -31,9 +31,39 @@ export default function MapTab({ trip }: { trip: any }) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const mapRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const formNameInputRef = useRef<HTMLInputElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
+  const [autocomplete, setAutocomplete] = useState<any>(null);
+  const [formAutocomplete, setFormAutocomplete] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<any>(null);
+  const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
+
+  // 모달 입력창 구글 자동완성
+  useEffect(() => {
+    if (showForm && formNameInputRef.current && !formAutocomplete && (window as any).google?.maps?.places) {
+      const google = (window as any).google;
+      const ac = new google.maps.places.Autocomplete(formNameInputRef.current, {
+        fields: ["name", "formatted_address", "geometry", "url"]
+      });
+      if (mapInstance) ac.bindTo("bounds", mapInstance);
+      
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+        
+        setForm(f => ({
+          ...f,
+          name: place.name || f.name,
+          address: place.formatted_address || f.address,
+          mapLink: place.url || f.mapLink,
+        }));
+        setTempLatLng({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
+      });
+      setFormAutocomplete(ac);
+    }
+  }, [showForm, formAutocomplete, mapInstance]);
 
   // 리스너 등록 (정보창 닫기)
   useEffect(() => {
@@ -55,7 +85,7 @@ export default function MapTab({ trip }: { trip: any }) {
         const map = new google.maps.Map(mapRef.current, {
           center: { lat: 37.5, lng: 127 },
           zoom: 12,
-          gestureHandling: "greedy",   // 손가락 1개로 이동 가능
+          gestureHandling: "greedy",
           fullscreenControl: false,
           streetViewControl: false,
           mapTypeControl: false,
@@ -63,10 +93,42 @@ export default function MapTab({ trip }: { trip: any }) {
         setMapInstance(map);
         infoWindowRef.current = new google.maps.InfoWindow();
       }
+
+      if (searchInputRef.current && !autocomplete && (window as any).google?.maps?.places) {
+        const google = (window as any).google;
+        const ac = new google.maps.places.Autocomplete(searchInputRef.current, {
+          fields: ["name", "formatted_address", "geometry", "url"]
+        });
+        if (mapInstance) ac.bindTo("bounds", mapInstance);
+        
+        ac.addListener("place_changed", () => {
+          const place = ac.getPlace();
+          if (!place.geometry || !place.geometry.location) return;
+          
+          if (mapInstance) {
+            mapInstance.panTo(place.geometry.location);
+            mapInstance.setZoom(16);
+          }
+          
+          setForm({
+            name: place.name || "",
+            address: place.formatted_address || "",
+            mapLink: place.url || "",
+            category: "attraction",
+            notes: ""
+          });
+          setTempLatLng({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
+          setShowForm(true);
+          
+          if (searchInputRef.current) searchInputRef.current.value = "";
+        });
+        setAutocomplete(ac);
+      }
     }
 
     if (existingScript) {
-      init();
+      if ((window as any).google) init();
+      else existingScript.addEventListener("load", init);
     } else {
       const script = document.createElement("script");
       script.id = "google-maps-script";
@@ -75,7 +137,7 @@ export default function MapTab({ trip }: { trip: any }) {
       script.onload = init;
       document.head.appendChild(script);
     }
-  }, [apiKey, mapInstance]);
+  }, [apiKey, mapInstance, autocomplete]);
 
   // 장소/숙소 목록 바뀔 때마다 마커 새로 그리기
   useEffect(() => {
@@ -233,7 +295,10 @@ export default function MapTab({ trip }: { trip: any }) {
       }
 
       // 이름만 있고 좌표가 없다면 Geocoding API 찔러서 찾아주기
-      if ((lat === undefined || lng === undefined) && form.name) {
+      if ((lat === undefined || lng === undefined) && tempLatLng) {
+        lat = tempLatLng.lat;
+        lng = tempLatLng.lng;
+      } else if ((lat === undefined || lng === undefined) && form.name) {
         try {
           const query = encodeURIComponent(`${form.name} ${form.address || trip.destination}`);
           const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`);
@@ -266,6 +331,7 @@ export default function MapTab({ trip }: { trip: any }) {
       setShowForm(false);
       setEditingId(null);
       setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" });
+      setTempLatLng(null);
       if (lat !== undefined && lng !== undefined) focusPlace(lat, lng);
     } catch (err: any) {
       console.error("장소 저장 오류:", err);
@@ -278,6 +344,7 @@ export default function MapTab({ trip }: { trip: any }) {
   function handleEdit(p: any) {
     setForm({ name: p.name || "", address: p.address || "", mapLink: p.mapLink || "", category: p.category || "attraction", notes: p.notes || "" });
     setEditingId(p._id);
+    setTempLatLng(null);
     setShowForm(true);
   }
 
@@ -328,6 +395,24 @@ export default function MapTab({ trip }: { trip: any }) {
               .gm-ui-hover-effect { display: none !important; }
             `}</style>
             <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+            
+            {/* 검색창 오버레이 */}
+            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 10 }}>
+              <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
+                <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: "1.1rem" }}>🔍</div>
+                <input
+                  ref={searchInputRef}
+                  placeholder="장소를 검색하세요 (구글맵 자동완성)"
+                  style={{
+                    width: "100%", height: 46, padding: "0 16px 0 42px",
+                    borderRadius: 24, border: "none", outline: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    fontSize: "0.95rem", fontWeight: 500,
+                  }}
+                />
+              </div>
+            </div>
+
             <button
               onClick={findMyLocation}
               style={{
@@ -453,7 +538,7 @@ export default function MapTab({ trip }: { trip: any }) {
             </div>
             {mapError && <p style={{ color: "var(--danger)", fontSize: "0.82rem", marginBottom: 12 }}>{mapError}</p>}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div><label>장소 이름 *</label><input className="input" placeholder="예: 도톤보리" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
+              <div><label>장소 이름 *</label><input ref={formNameInputRef} className="input" placeholder="예: 도톤보리 (검색 시 자동완성)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
               <div><label>구글 지도 링크 (선택)</label><input className="input" placeholder="https://maps.app.goo.gl/..." value={form.mapLink} onChange={e => setForm(f => ({ ...f, mapLink: e.target.value }))} /></div>
               <div><label>주소 (선택)</label><input className="input" placeholder="주소 직접 입력 가능" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
 
