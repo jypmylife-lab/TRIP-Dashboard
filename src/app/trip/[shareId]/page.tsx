@@ -72,18 +72,20 @@ export default function TripPage() {
   // 닉네임 입력 화면
   if (!nickname) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ width: "100%", maxWidth: 440 }}>
-          <div style={{ background: theme.bg, borderRadius: "20px 20px 0 0", padding: "36px 36px 24px", color: theme.text }}>
-            <p style={{ letterSpacing: 4, fontSize: "0.7rem", marginBottom: 8, color: theme.muted, textTransform: "uppercase" }}>Trip Invitation</p>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>{trip.coverEmoji || "✈️"}</div>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 4, color: "#fff", lineHeight: 1.2 }}>{trip.title}</h1>
-            <p style={{ color: theme.muted, fontSize: "0.85rem" }}>📍 {trip.destination}</p>
-            <p style={{ color: theme.muted, fontSize: "0.8rem", marginTop: 4 }}>{trip.startDate} ~ {trip.endDate}</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "var(--bg-primary)" }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
+          <div style={{ background: theme.bg, borderRadius: "28px 28px 0 0", padding: "40px 32px 28px", color: theme.text, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -20, right: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+            <div style={{ position: "absolute", bottom: -30, left: -30, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+            <p style={{ letterSpacing: 3, fontSize: "0.72rem", marginBottom: 12, color: theme.muted, textTransform: "uppercase", fontWeight: 700 }}>Trip Invitation</p>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>{trip.coverEmoji || "✈️"}</div>
+            <h1 style={{ fontSize: "2rem", fontWeight: 900, marginBottom: 6, color: "#fff", lineHeight: 1.15, letterSpacing: "-0.02em" }}>{trip.title}</h1>
+            <p style={{ color: theme.muted, fontSize: "0.88rem", fontWeight: 500 }}>📍 {trip.destination}</p>
+            <p style={{ color: theme.muted, fontSize: "0.82rem", marginTop: 4, fontWeight: 500 }}>{trip.startDate} ~ {trip.endDate}</p>
           </div>
-          <div style={{ background: "#ffffff", borderRadius: "0 0 20px 20px", padding: 36, boxShadow: "0 20px 40px -8px rgba(0,0,0,0.12)" }}>
-            <h2 style={{ fontWeight: 700, marginBottom: 6, fontSize: "1.05rem" }}>닉네임을 설정해주세요 👋</h2>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", marginBottom: 20 }}>다른 참여자들이 나를 알아볼 수 있어요</p>
+          <div style={{ background: "#ffffff", borderRadius: "0 0 28px 28px", padding: 32, boxShadow: "0 20px 48px -12px rgba(0,0,0,0.12)", border: "2px solid rgba(0,0,0,0.06)", borderTop: "none" }}>
+            <h2 style={{ fontWeight: 800, marginBottom: 6, fontSize: "1.1rem", letterSpacing: "-0.01em" }}>닉네임을 설정해주세요 👋</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.84rem", marginBottom: 22, fontWeight: 500 }}>다른 참여자들이 나를 알아볼 수 있어요</p>
             <form onSubmit={handleSetNickname} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label>나의 닉네임</label>
@@ -93,16 +95,16 @@ export default function TripPage() {
 
               {participants && participants.length > 0 && (
                 <div style={{ marginBottom: 4 }}>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>또는 기존 참여자 닉네임 이어서 사용하기</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>또는 기존 참여자 닉네임 이어서 사용하기</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {participants.map(p => (
                       <button key={p._id} type="button"
                         onClick={() => setInputNickname(p.nickname)}
                         style={{
-                          padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700,
-                          background: inputNickname === p.nickname ? "var(--accent)" : "rgba(99,102,241,0.06)",
-                          color: inputNickname === p.nickname ? "#fff" : "var(--accent)",
-                          border: `1px solid ${inputNickname === p.nickname ? "var(--accent)" : "transparent"}`,
+                          padding: "7px 16px", borderRadius: 999, fontSize: "0.82rem", fontWeight: 700,
+                          background: inputNickname === p.nickname ? "var(--accent)" : "rgba(0,0,0,0.04)",
+                          color: inputNickname === p.nickname ? "#fff" : "var(--text-secondary)",
+                          border: `2px solid ${inputNickname === p.nickname ? "var(--accent)" : "rgba(0,0,0,0.08)"}`,
                           cursor: "pointer", transition: "all 0.15s"
                         }}>
                         👤 {p.nickname}
@@ -112,7 +114,7 @@ export default function TripPage() {
                 </div>
               )}
 
-              <button className="btn-primary" type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "0.95rem" }}>
+              <button className="btn-primary" type="submit" style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "1rem" }}>
                 입장하기 🚀
               </button>
             </form>
@@ -124,55 +126,56 @@ export default function TripPage() {
 
   // 메인 대시보드
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* 바우처 스타일 헤더 */}
-      <header style={{ background: theme.bg, color: theme.text, padding: "16px 16px 14px", position: "relative" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          {/* 상단: 관리자 버튼 (우측) */}
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-primary)" }}>
+      {/* 헤더 */}
+      <header style={{ background: theme.bg, color: theme.text, padding: "18px 16px 16px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ maxWidth: 900, margin: "0 auto", position: "relative" }}>
+          {/* 상단: 관리자 버튼 */}
           {isAdmin && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8, gap: 6 }}>
-              <span className="badge" style={{ background: "rgba(255,255,255,0.12)", color: "#fff", fontSize: "0.68rem" }}>
+              <span className="badge" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.7rem", fontWeight: 800 }}>
                 👑 관리자
               </span>
               <button onClick={() => window.location.href = '/admin'}
-                style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700, color: "#fff", border: "none", borderRadius: 6, background: "rgba(255,255,255,0.25)", cursor: "pointer" }}>
+                style={{ padding: "5px 12px", fontSize: "0.72rem", fontWeight: 700, color: "#fff", border: "2px solid rgba(255,255,255,0.2)", borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}>
                 🏠 홈
               </button>
             </div>
           )}
 
           {/* 여행 정보 */}
-          <p style={{ letterSpacing: 3, fontSize: "0.68rem", marginBottom: 6, color: theme.muted, textTransform: "uppercase" }}>
+          <p style={{ letterSpacing: 3, fontSize: "0.7rem", marginBottom: 8, color: theme.muted, textTransform: "uppercase", fontWeight: 700 }}>
             {trip.tripType || "FRIENDS TRIP"} · {trip.startDate.substring(0, 4)}
           </p>
-          <h1 style={{ fontWeight: 800, fontSize: "clamp(1.4rem, 6vw, 2.4rem)", lineHeight: 1.1, marginBottom: 8, color: "#fff" }}>
+          <h1 style={{ fontWeight: 900, fontSize: "clamp(1.5rem, 6vw, 2.6rem)", lineHeight: 1.08, marginBottom: 8, color: "#fff", letterSpacing: "-0.02em" }}>
             {trip.title}
           </h1>
-          <p style={{ fontSize: "clamp(0.8rem, 3vw, 1rem)", fontWeight: 400, opacity: 0.6, marginBottom: 4, color: "#fff" }}>
+          <p style={{ fontSize: "clamp(0.85rem, 3vw, 1.05rem)", fontWeight: 500, opacity: 0.7, marginBottom: 4, color: "#fff" }}>
             {trip.destination}
           </p>
-          <p style={{ fontSize: "0.78rem", color: theme.muted, marginBottom: 10 }}>
+          <p style={{ fontSize: "0.8rem", color: theme.muted, marginBottom: 12, fontWeight: 500 }}>
             {trip.startDate} ~ {trip.endDate}
           </p>
 
-          {/* 참여자 뱃지 + 닉네임 한 줄 */}
+          {/* 참여자 뱃지 + 닉네임 */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {participants?.map(p => (
                 <div key={p._id} style={{
                   background: theme.badge, color: theme.bg,
-                  padding: "4px 10px", fontSize: "0.72rem", fontWeight: 800, borderRadius: 4
+                  padding: "5px 12px", fontSize: "0.74rem", fontWeight: 800, borderRadius: 999
                 }}>
                   {p.nickname}
                 </div>
               ))}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: "0.78rem", opacity: 0.8, color: "#fff" }}>
+              <span style={{ fontSize: "0.8rem", opacity: 0.85, color: "#fff", fontWeight: 500 }}>
                 <span style={{ opacity: 0.6 }}>닉네임 </span>
-                <strong>{nickname}</strong>
+                <strong style={{ fontWeight: 800 }}>{nickname}</strong>
               </span>
-              <button style={{ padding: "3px 8px", fontSize: "0.68rem", color: theme.muted, border: `1px solid rgba(255,255,255,0.2)`, borderRadius: 6, background: "transparent", cursor: "pointer" }}
+              <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700, color: theme.muted, border: `2px solid rgba(255,255,255,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
                 onClick={() => { localStorage.removeItem(`nickname_${shareId}`); setNickname(""); }}>
                 변경
               </button>
@@ -181,8 +184,8 @@ export default function TripPage() {
         </div>
       </header>
 
-      {/* 탭 네비게이션 — PC: sticky 상단, 모바일: fixed 하단 */}
-      <div className="tab-nav-wrapper" style={{ padding: "14px 20px 0", background: "var(--bg-primary)", position: "sticky", top: 0, zIndex: 20, borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
+      {/* 탭 네비게이션 */}
+      <div className="tab-nav-wrapper" style={{ padding: "14px 20px 0", background: "var(--bg-primary)", position: "sticky", top: 0, zIndex: 20, borderBottom: "2px solid rgba(0,0,0,0.04)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div className="tabs">
             {TABS.map((tab) => (
