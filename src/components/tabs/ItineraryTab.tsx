@@ -53,8 +53,8 @@ function TimePicker({ value, onChange }: { value: string; onChange: (v: string) 
   return (
     <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
       <select className="input" style={{ width: "auto", padding: "3px 6px", fontSize: "0.78rem" }} value={ampm} onChange={e => handleChange(e.target.value, h, m)}>
-        <option value="PM">오후</option>
         <option value="AM">오전</option>
+        <option value="PM">오후</option>
       </select>
       <select className="input" style={{ width: "auto", padding: "3px 6px", fontSize: "0.78rem" }} value={h} onChange={e => handleChange(ampm, parseInt(e.target.value), m)}>
         {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => <option key={num} value={num}>{num}</option>)}
@@ -439,13 +439,13 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     </div>
 
                                     {/* 액션 버튼 */}
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 2, marginLeft: 8 }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 8 }}>
                                       <button onClick={() => handleMoveItem(item, "up", dayItems)} disabled={idx === 0}
-                                        style={{ background: "none", border: "none", cursor: idx === 0 ? "default" : "pointer", fontSize: 12, opacity: idx === 0 ? 0.2 : 0.5, padding: 2 }}>▲</button>
+                                        style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 6, cursor: idx === 0 ? "default" : "pointer", fontSize: 16, opacity: idx === 0 ? 0.25 : 0.7, padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>▲</button>
                                       <button onClick={() => handleMoveItem(item, "down", dayItems)} disabled={idx === dayItems.length - 1}
-                                        style={{ background: "none", border: "none", cursor: idx === dayItems.length - 1 ? "default" : "pointer", fontSize: 12, opacity: idx === dayItems.length - 1 ? 0.2 : 0.5, padding: 2 }}>▼</button>
+                                        style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 6, cursor: idx === dayItems.length - 1 ? "default" : "pointer", fontSize: 16, opacity: idx === dayItems.length - 1 ? 0.25 : 0.7, padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>▼</button>
                                       <button onClick={() => removeItem({ itemId: item._id })}
-                                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--danger)", padding: 2 }}>✕</button>
+                                        style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
                                     </div>
                                   </div>
 
