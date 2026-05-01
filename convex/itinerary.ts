@@ -159,6 +159,23 @@ export const updateItem = mutation({
   },
 });
 
+// 두 항목의 순서 교체 (Atomic Swap)
+export const swapItems = mutation({
+  args: {
+    itemAId: v.id("itineraryItems"),
+    itemBId: v.id("itineraryItems"),
+  },
+  handler: async (ctx, args) => {
+    const itemA = await ctx.db.get(args.itemAId);
+    const itemB = await ctx.db.get(args.itemBId);
+    if (!itemA || !itemB) return;
+    
+    const tempIndex = itemA.orderIndex;
+    await ctx.db.patch(args.itemAId, { orderIndex: itemB.orderIndex });
+    await ctx.db.patch(args.itemBId, { orderIndex: tempIndex });
+  },
+});
+
 // 사진 하나 삭제 (사진에 달린 댓글도 함께 삭제)
 export const removePhoto = mutation({
   args: { 

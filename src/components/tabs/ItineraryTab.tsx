@@ -77,6 +77,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const updateDay = useMutation(api.itinerary.updateDay);
   const addItem = useMutation(api.itinerary.addItem);
   const updateItem = useMutation(api.itinerary.updateItem);
+  const swapItems = useMutation(api.itinerary.swapItems);
   const removeItem = useMutation(api.itinerary.removeItem);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -440,24 +441,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
     const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx > 0) {
-      const current = dayItems[idx];
-      const prev = dayItems[idx - 1];
-      const targetOrder = prev.orderIndex - 0.001;
-      await updateItem({ itemId: current._id, orderIndex: targetOrder });
+      await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx - 1]._id });
     }
-    // setReorderItem(null); // 메뉴 유지
   }
 
   async function moveItemDown(itemId: string, dayId: string) {
     const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
     const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx < dayItems.length - 1) {
-      const current = dayItems[idx];
-      const next = dayItems[idx + 1];
-      const targetOrder = next.orderIndex + 0.001;
-      await updateItem({ itemId: current._id, orderIndex: targetOrder });
+      await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx + 1]._id });
     }
-    // setReorderItem(null); // 메뉴 유지
   }
 
   if (days === undefined || allItems === undefined) {
@@ -630,9 +623,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                       {/* 드래그 및 순서 변경 */}
                                       {(reorderDayId === day._id || reorderItem === item._id) ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                                          <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
-                                          <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          {reorderItem === item._id && !reorderDayId && <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
+                                          <button type="button" onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
+                                          <button type="button" onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
+                                          {reorderItem === item._id && !reorderDayId && <button type="button" onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
                                         </div>
                                       ) : (
                                         <div
