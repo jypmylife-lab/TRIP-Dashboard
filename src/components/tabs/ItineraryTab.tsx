@@ -655,24 +655,22 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                           }}
                                           title="아래로 이동"
                                         >↓</button>
-                                      </div>
-                                      
-                                      {/* 편집 버튼 */}
-                                      {item.type === "place" && reorderItem !== item._id && (
-                                        <button onClick={() => {
-                                          setEditPlaceModal(item);
-                                          setPlaceForm({
-                                            name: item.placeName || "", category: item.placeCategory || "attraction",
-                                            address: item.placeAddress || "", time: item.time || "",
-                                            lat: item.placeLat, lng: item.placeLng
-                                          });
-                                        }} style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "5px 0", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>편집</button>
-                                      )}
-                                      {/* 삭제 버튼 */}
-                                      {reorderItem !== item._id && (
+                                        
+                                        {/* 편집 버튼 */}
+                                        {item.type === "place" && (
+                                          <button onClick={() => {
+                                            setEditPlaceModal(item);
+                                            setPlaceForm({
+                                              name: item.placeName || "", category: item.placeCategory || "attraction",
+                                              address: item.placeAddress || "", time: item.time || "",
+                                              lat: item.placeLat, lng: item.placeLng
+                                            });
+                                          }} style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "5px 0", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700, marginTop: 4 }}>편집</button>
+                                        )}
+                                        {/* 삭제 버튼 */}
                                         <button onClick={() => removeItem({ itemId: item._id })}
-                                          style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 0", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
-                                      )}
+                                          style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 0", lineHeight: 1, transition: "all 0.15s", marginTop: 4 }}>✕</button>
+                                      </div>
                                     </div>
                                   </div>
 
