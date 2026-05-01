@@ -39,6 +39,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<any>(null);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   // 모달 입력창 구글 자동완성
   useEffect(() => {
@@ -385,78 +386,89 @@ export default function MapTab({ trip }: { trip: any }) {
       </div>
 
       {/* 지도 표시 */}
-      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 380, position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
-        {apiKey ? (
-          <>
-            <style>{`
-              .gm-style-iw-c { padding: 0 !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
-              .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
-              .gm-style-iw-tc { display: none !important; } /* 말풍선 꼬리 숨김(선선택) or 유지 선택가능 */
-              .gm-ui-hover-effect { display: none !important; }
-            `}</style>
-            <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
-            
-            {/* 검색창 오버레이 */}
-            <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 10 }}>
-              <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
-                <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: "1.1rem" }}>🔍</div>
-                <input
-                  ref={searchInputRef}
-                  placeholder="장소를 검색하세요 (구글맵 자동완성)"
-                  style={{
-                    width: "100%", height: 46, padding: "0 16px 0 42px",
-                    borderRadius: 24, border: "none", outline: "none",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    fontSize: "0.95rem", fontWeight: 500,
-                  }}
-                />
+      <div style={{ position: "relative" }}>
+        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: isMapExpanded ? 380 : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
+          {apiKey ? (
+            <>
+              <style>{`
+                .gm-style-iw-c { padding: 0 !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
+                .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
+                .gm-style-iw-tc { display: none !important; } /* 말풍선 꼬리 숨김(선선택) or 유지 선택가능 */
+                .gm-ui-hover-effect { display: none !important; }
+              `}</style>
+              <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+              
+              {/* 검색창 오버레이 */}
+              <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 10 }}>
+                <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
+                  <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: "1.1rem" }}>🔍</div>
+                  <input
+                    ref={searchInputRef}
+                    placeholder="장소를 검색하세요 (구글맵 자동완성)"
+                    style={{
+                      width: "100%", height: 46, padding: "0 16px 0 42px",
+                      borderRadius: 24, border: "none", outline: "none",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      fontSize: "0.95rem", fontWeight: 500,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={findMyLocation}
-              style={{
-                position: "absolute", bottom: 80, right: 12,
-                width: 44, height: 44, borderRadius: "50%",
-                background: "#ffffff",
-                border: "1px solid rgba(0,0,0,0.1)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", zIndex: 10,
-                fontSize: 20, color: "#4285F4"
-              }}
-              title="내 위치 찾기"
-            >
-              📍
-            </button>
-          </>
-        ) : (
-          <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", gap: 12 }}>
-            <div style={{ fontSize: 48 }}>🗺️</div>
-            <p style={{ fontSize: "0.9rem" }}>Google Maps API 키가 필요합니다</p>
-            <p style={{ fontSize: "0.78rem" }}>.env.local에 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY를 설정해주세요</p>
-          </div>
-        )}
+              <button
+                onClick={findMyLocation}
+                style={{
+                  position: "absolute", bottom: isMapExpanded ? 30 : 16, right: 12,
+                  width: 44, height: 44, borderRadius: "50%",
+                  background: "#ffffff",
+                  border: "1px solid rgba(0,0,0,0.1)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", zIndex: 10,
+                  fontSize: 20, color: "#4285F4",
+                  transition: "bottom 0.4s ease"
+                }}
+                title="내 위치 찾기"
+              >
+                📍
+              </button>
+            </>
+          ) : (
+            <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", gap: 12 }}>
+              <div style={{ fontSize: 48 }}>🗺️</div>
+              <p style={{ fontSize: "0.9rem" }}>Google Maps API 키가 필요합니다</p>
+              <p style={{ fontSize: "0.78rem" }}>.env.local에 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY를 설정해주세요</p>
+            </div>
+          )}
+        </div>
+        
+        {/* 지도 크기 토글 화살표 */}
+        <button onClick={() => setIsMapExpanded(!isMapExpanded)}
+          style={{ position: "absolute", bottom: -14, left: "50%", transform: "translateX(-50%)", zIndex: 20, background: "#fff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", fontSize: "0.6rem", color: "var(--text-secondary)" }}>
+          {isMapExpanded ? "▲" : "▼"}
+        </button>
       </div>
 
       {/* 카테고리 필터 UI - 항상 표시 */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4, marginTop: 8 }}>
         <button onClick={() => setSelectedCat("all")} 
           style={{ 
-            padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
-            background: selectedCat === "all" ? "var(--lavender)" : "transparent", 
+            padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+            background: selectedCat === "all" ? "var(--lavender)" : "#ffffff", 
             color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
-            borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.1)",
+            borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.08)",
+            boxShadow: selectedCat === "all" ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
           }}>
           모두
         </button>
         {CATEGORIES.map(c => (
           <button key={c.id} onClick={() => setSelectedCat(c.id)} 
             style={{ 
-              padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
-              background: selectedCat === c.id ? "var(--lavender)" : "transparent", 
+              padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+              background: selectedCat === c.id ? "var(--lavender)" : "#ffffff", 
               color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
-              borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.1)",
+              borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.08)",
+              boxShadow: selectedCat === c.id ? "none" : "0 1px 2px rgba(0,0,0,0.05)",
               display: "flex", alignItems: "center", gap: 4 
             }}>
             {c.emoji} {c.label}
