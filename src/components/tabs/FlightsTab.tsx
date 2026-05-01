@@ -96,7 +96,8 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                 {/* 티켓 상단 컬러 바 */}
                 <div style={{ 
                   background: "var(--yellow)",
-                  padding: "12px 18px",
+                  padding: "0 18px",
+                  minHeight: 54,
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   borderBottom: "2px solid rgba(0,0,0,0.08)"
                 }}>

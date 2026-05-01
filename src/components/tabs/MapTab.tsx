@@ -495,8 +495,8 @@ export default function MapTab({ trip }: { trip: any }) {
                 display: "flex", flexDirection: "column"
               }}
               onClick={() => focusPlace(a.lat, a.lng)}>
-                <div style={{ background: "var(--mint)", padding: "16px 20px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 1 }}>🏨 숙소</span>
+                <div style={{ background: "var(--mint)", padding: "0 20px", minHeight: 60, borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ color: "#1a1a1a", fontSize: "0.85rem", fontWeight: 800, letterSpacing: 1 }}>🏨 숙소</span>
                 </div>
                 <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{a.name}</div>
@@ -520,8 +520,8 @@ export default function MapTab({ trip }: { trip: any }) {
               return (
                 <div key={p._id} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
-                  <div style={{ background: "var(--mint)", padding: "16px 20px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
+                  <div style={{ background: "var(--mint)", padding: "0 20px", minHeight: 60, borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ color: "#1a1a1a", fontSize: "0.85rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                         onClick={(e) => { e.stopPropagation(); handleEdit(p); }}>수정</button>
