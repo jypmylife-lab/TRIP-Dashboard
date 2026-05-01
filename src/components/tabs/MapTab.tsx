@@ -96,34 +96,7 @@ export default function MapTab({ trip }: { trip: any }) {
       }
 
       if (searchInputRef.current && !autocomplete && (window as any).google?.maps?.places) {
-        const google = (window as any).google;
-        const ac = new google.maps.places.Autocomplete(searchInputRef.current, {
-          fields: ["name", "formatted_address", "geometry", "url"]
-        });
-        if (mapInstance) ac.bindTo("bounds", mapInstance);
-        
-        ac.addListener("place_changed", () => {
-          const place = ac.getPlace();
-          if (!place.geometry || !place.geometry.location) return;
-          
-          if (mapInstance) {
-            mapInstance.panTo(place.geometry.location);
-            mapInstance.setZoom(16);
-          }
-          
-          setForm({
-            name: place.name || "",
-            address: place.formatted_address || "",
-            mapLink: place.url || "",
-            category: "attraction",
-            notes: ""
-          });
-          setTempLatLng({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
-          setShowForm(true);
-          
-          if (searchInputRef.current) searchInputRef.current.value = "";
-        });
-        setAutocomplete(ac);
+        // 검색창이 제거되었으므로 autocomplete 바인딩 로직을 제거 또는 비활성화합니다.
       }
     }
 
@@ -398,22 +371,7 @@ export default function MapTab({ trip }: { trip: any }) {
               `}</style>
               <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
               
-              {/* 검색창 오버레이 */}
-              <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 10 }}>
-                <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
-                  <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: "1.1rem" }}>🔍</div>
-                  <input
-                    ref={searchInputRef}
-                    placeholder=""
-                    style={{
-                      width: "100%", height: 46, padding: "0 16px 0 42px",
-                      borderRadius: 24, border: "none", outline: "none",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                      fontSize: "0.95rem", fontWeight: 500,
-                    }}
-                  />
-                </div>
-              </div>
+              {/* 검색창 제거됨 */}
 
               <button
                 onClick={findMyLocation}

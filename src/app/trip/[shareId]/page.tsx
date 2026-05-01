@@ -31,6 +31,7 @@ export default function TripPage() {
 
   const [nickname, setNickname] = useState("");
   const [inputNickname, setInputNickname] = useState("");
+  const [selectedOldNickname, setSelectedOldNickname] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("bookings");
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -45,9 +46,18 @@ export default function TripPage() {
     e.preventDefault();
     if (!inputNickname.trim() || !trip) return;
     const name = inputNickname.trim();
+    
+    if (selectedOldNickname && selectedOldNickname !== name) {
+      // 기존 닉네임을 선택하고 다른 이름으로 수정한 경우 -> 닉네임 및 관련 데이터 일괄 업데이트
+      await updateNickname({ tripId: trip._id, oldNickname: selectedOldNickname, newNickname: name });
+    } else {
+      // 새 닉네임이거나 선택한 닉네임 그대로 입장한 경우
+      await addParticipant({ tripId: trip._id, nickname: name });
+    }
+    
     localStorage.setItem(`nickname_${shareId}`, name);
     setNickname(name);
-    await addParticipant({ tripId: trip._id, nickname: name });
+    setSelectedOldNickname(null);
   }
 
   const currentThemeColor = trip?.themeColor;
@@ -99,19 +109,25 @@ export default function TripPage() {
                 <div style={{ marginBottom: 4 }}>
                   <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>또는 기존 참여자 닉네임 이어서 사용하기</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {participants.map(p => (
-                      <button key={p._id} type="button"
-                        onClick={() => setInputNickname(p.nickname)}
-                        style={{
-                          padding: "7px 16px", borderRadius: 999, fontSize: "0.82rem", fontWeight: 700,
-                          background: inputNickname === p.nickname ? "var(--accent)" : "rgba(0,0,0,0.04)",
-                          color: inputNickname === p.nickname ? "#fff" : "var(--text-secondary)",
-                          border: `2px solid ${inputNickname === p.nickname ? "var(--accent)" : "rgba(0,0,0,0.08)"}`,
-                          cursor: "pointer", transition: "all 0.15s"
-                        }}>
-                        👤 {p.nickname}
-                      </button>
-                    ))}
+                    {participants.map(p => {
+                      const isSelected = selectedOldNickname === p.nickname;
+                      return (
+                        <button key={p._id} type="button"
+                          onClick={() => {
+                            setInputNickname(p.nickname);
+                            setSelectedOldNickname(p.nickname);
+                          }}
+                          style={{
+                            padding: "7px 16px", borderRadius: 999, fontSize: "0.82rem", fontWeight: 700,
+                            background: isSelected ? "var(--accent)" : "rgba(0,0,0,0.04)",
+                            color: isSelected ? "#fff" : "var(--text-secondary)",
+                            border: `2px solid ${isSelected ? "var(--accent)" : "rgba(0,0,0,0.08)"}`,
+                            cursor: "pointer", transition: "all 0.15s"
+                          }}>
+                          👤 {p.nickname}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -179,14 +195,11 @@ export default function TripPage() {
                 <strong style={{ fontWeight: 800 }}>{nickname}</strong>
               </span>
               <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
-                onClick={async () => { 
-                  const newName = prompt("새로운 닉네임을 입력하세요 (입력 시 모든 기존 활동 내역의 이름도 함께 변경됩니다)", nickname);
-                  if (newName && newName.trim() && newName.trim() !== nickname) {
-                    const finalName = newName.trim();
-                    await updateNickname({ tripId: trip._id, oldNickname: nickname, newNickname: finalName });
-                    localStorage.setItem(`nickname_${shareId}`, finalName);
-                    setNickname(finalName);
-                  }
+                onClick={() => { 
+                  localStorage.removeItem(`nickname_${shareId}`); 
+                  setSelectedOldNickname(nickname);
+                  setInputNickname(nickname);
+                  setNickname(""); 
                 }}>
                 변경
               </button>
