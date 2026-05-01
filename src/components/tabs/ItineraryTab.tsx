@@ -623,27 +623,39 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                       ) : null}
                                     </div>
 
-                                    {/* 액션 버튼 */}
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
-                                      {/* 드래그 및 순서 변경 */}
-                                      {reorderItem === item._id ? (
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                                          <button type="button" onClick={(e) => { e.stopPropagation(); moveItemUp(item._id, day._id); }} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
-                                          <button type="button" onClick={(e) => { e.stopPropagation(); moveItemDown(item._id, day._id); }} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          <button type="button" onClick={(e) => { e.stopPropagation(); setReorderItem(null); }} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>
-                                        </div>
-                                      ) : (
-                                        <div
-                                          draggable
-                                          onDragStart={() => setDragItem(item)}
-                                          onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
-                                          onDrop={() => handleDragDrop(dayItems)}
-                                          onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
-                                          onClick={() => setReorderItem(item._id)}
-                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "pointer", padding: "4px 0", fontSize: 20, color: "var(--accent)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
-                                          title="클릭하여 순서 변경"
-                                        >⇅</div>
-                                      )}
+                                      {/* 순서 변경 버튼 (상시 노출) */}
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 8, alignItems: "center" }}>
+                                        <button 
+                                          type="button" 
+                                          onClick={(e) => { e.stopPropagation(); moveItemUp(item._id, day._id); }} 
+                                          disabled={idx === 0} 
+                                          style={{ 
+                                            width: 32, height: 32, border: "1px solid rgba(0,0,0,0.1)", 
+                                            background: "white", borderRadius: 8, display: "flex", 
+                                            alignItems: "center", justifyContent: "center", fontSize: 18, 
+                                            cursor: idx === 0 ? "default" : "pointer", 
+                                            opacity: idx === 0 ? 0.2 : 0.8, 
+                                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                            color: "var(--accent)"
+                                          }}
+                                          title="위로 이동"
+                                        >↑</button>
+                                        <button 
+                                          type="button" 
+                                          onClick={(e) => { e.stopPropagation(); moveItemDown(item._id, day._id); }} 
+                                          disabled={idx === dayItems.length - 1} 
+                                          style={{ 
+                                            width: 32, height: 32, border: "1px solid rgba(0,0,0,0.1)", 
+                                            background: "white", borderRadius: 8, display: "flex", 
+                                            alignItems: "center", justifyContent: "center", fontSize: 18, 
+                                            cursor: idx === dayItems.length - 1 ? "default" : "pointer", 
+                                            opacity: idx === dayItems.length - 1 ? 0.2 : 0.8, 
+                                            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                                            color: "var(--accent)"
+                                          }}
+                                          title="아래로 이동"
+                                        >↓</button>
+                                      </div>
                                       
                                       {/* 편집 버튼 */}
                                       {item.type === "place" && reorderItem !== item._id && (
