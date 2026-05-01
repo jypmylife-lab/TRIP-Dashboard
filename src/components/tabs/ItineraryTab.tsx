@@ -207,8 +207,12 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
     if (days.length === 0) return;
 
-    // 확장된 모든 DAY의 장소를 지도에 표시 (모두 닫혀있다면 1일차 표시)
-    const targetDayIds = expandedDays.size > 0 ? Array.from(expandedDays) : (days.length > 0 ? [days[0]._id] : []);
+    // 확장된 모든 DAY + 현재 포커스된 DAY의 장소를 지도에 표시 (모두 닫혀있다면 1일차 표시)
+    let targetDayIdsArray = Array.from(expandedDays);
+    if (focusedDayId && !targetDayIdsArray.includes(focusedDayId)) {
+      targetDayIdsArray.push(focusedDayId);
+    }
+    const targetDayIds = targetDayIdsArray.length > 0 ? targetDayIdsArray : (days.length > 0 ? [days[0]._id] : []);
 
     const bounds = new google.maps.LatLngBounds();
     const path: any[] = [];
@@ -375,18 +379,21 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
-      </div>
+      {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
+      <div style={{ position: "sticky", top: 10, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg)", paddingTop: 8, paddingBottom: 8, margin: "-8px -8px 0", padding: "8px 8px 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
+        </div>
 
-      {/* 상단 지도 영역 (경로 표시) */}
-      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, position: "sticky", top: 16, zIndex: 50, border: "2px solid rgba(0,0,0,0.08)" }}>
-        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
-        {!mapInstance && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-            지도를 불러오는 중이거나 일정이 없습니다
-          </div>
-        )}
+        {/* 상단 지도 영역 (경로 표시) */}
+        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, border: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
+          <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+          {!mapInstance && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+              지도를 불러오는 중이거나 일정이 없습니다
+            </div>
+          )}
+        </div>
       </div>
 
       {days.length === 0 ? (
@@ -404,7 +411,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             return (
               <div key={day._id} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
                 {/* DAY 헤더 */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s" }}>
+                <div onClick={() => setFocusedDayId(day._id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontWeight: 900, fontSize: "1.05rem", color: isExpanded ? "#1a1a1a" : "var(--text-primary)" }}>day {day.dayNumber}</span>
                     <span style={{ fontSize: "0.82rem", color: isExpanded ? "rgba(0,0,0,0.6)" : "var(--text-muted)", fontWeight: 600 }}>
@@ -412,7 +419,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     </span>
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
-                  <div onClick={() => toggleDay(day._id)} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "4px 8px", borderRadius: 8 }}>
+                  <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "4px 8px", borderRadius: 8 }}>
                     <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
                     <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
                   </div>

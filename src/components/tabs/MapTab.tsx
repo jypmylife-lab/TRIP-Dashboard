@@ -388,9 +388,12 @@ export default function MapTab({ trip }: { trip: any }) {
                 }}
                 title="현재 위치로 이동"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent)" }}>
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <circle cx="12" cy="12" r="3"></circle>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-secondary)" }}>
+                  <circle cx="12" cy="12" r="7"></circle>
+                  <line x1="12" y1="1" x2="12" y2="5"></line>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="1" y1="12" x2="5" y2="12"></line>
+                  <line x1="19" y1="12" x2="23" y2="12"></line>
                 </svg>
               </button>
             </>
