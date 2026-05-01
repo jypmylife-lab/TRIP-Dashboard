@@ -77,7 +77,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const updateDay = useMutation(api.itinerary.updateDay);
   const addItem = useMutation(api.itinerary.addItem);
   const updateItem = useMutation(api.itinerary.updateItem);
-  const swapItems = useMutation(api.itinerary.swapItems);
+  const swapItems = useMutation(api.itinerary.atomicSwapItems);
   const removeItem = useMutation(api.itinerary.removeItem);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -438,18 +438,28 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   }
 
   async function moveItemUp(itemId: string, dayId: string) {
-    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
-    if (idx > 0) {
-      await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx - 1]._id });
+    try {
+      const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+      const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
+      if (idx > 0) {
+        await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx - 1]._id });
+      }
+    } catch (err: any) {
+      console.error("Move up failed", err);
+      alert("순서 변경 중 오류가 발생했습니다: " + err.message);
     }
   }
 
   async function moveItemDown(itemId: string, dayId: string) {
-    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
-    if (idx < dayItems.length - 1) {
-      await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx + 1]._id });
+    try {
+      const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+      const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
+      if (idx < dayItems.length - 1) {
+        await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx + 1]._id });
+      }
+    } catch (err: any) {
+      console.error("Move down failed", err);
+      alert("순서 변경 중 오류가 발생했습니다: " + err.message);
     }
   }
 

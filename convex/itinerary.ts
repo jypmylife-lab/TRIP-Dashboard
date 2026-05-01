@@ -159,7 +159,8 @@ export const updateItem = mutation({
   },
 });
 
-export const swapItems = mutation({
+// 두 항목의 순서 교체 (Atomic Swap) - 이름을 변경하여 충돌 방지
+export const atomicSwapItems = mutation({
   args: {
     itemAId: v.id("itineraryItems"),
     itemBId: v.id("itineraryItems"),
@@ -167,13 +168,18 @@ export const swapItems = mutation({
   handler: async (ctx, args) => {
     const itemA = await ctx.db.get(args.itemAId);
     const itemB = await ctx.db.get(args.itemBId);
-    if (!itemA || !itemB) return;
     
-    const indexA = itemA.orderIndex;
-    const indexB = itemB.orderIndex;
+    if (!itemA) throw new Error("항목 A를 찾을 수 없습니다: " + args.itemAId);
+    if (!itemB) throw new Error("항목 B를 찾을 수 없습니다: " + args.itemBId);
     
+    const indexA = typeof itemA.orderIndex === "number" ? itemA.orderIndex : 0;
+    const indexB = typeof itemB.orderIndex === "number" ? itemB.orderIndex : 0;
+    
+    // 순차적 패치로 안정성 확보
     await ctx.db.patch(args.itemAId, { orderIndex: indexB });
     await ctx.db.patch(args.itemBId, { orderIndex: indexA });
+    
+    return { success: true };
   },
 });
 
