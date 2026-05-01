@@ -71,6 +71,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const days = useQuery(api.itinerary.listDaysByTrip, { tripId: trip._id });
   const allItems = useQuery(api.itinerary.listItemsByTrip, { tripId: trip._id });
   const savedPlaces = useQuery(api.places.listPlacesByTrip, { tripId: trip._id });
+  const accommodations = useQuery(api.accommodations.listByTrip, { tripId: trip._id });
   const addDay = useMutation(api.itinerary.addDay);
   const removeDay = useMutation(api.itinerary.removeDay);
   const updateDay = useMutation(api.itinerary.updateDay);
@@ -100,6 +101,24 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
+
+  const combinedSavedPlaces = useMemo(() => {
+    const list: any[] = [];
+    if (accommodations) {
+      accommodations.forEach(a => list.push({
+        _id: a._id,
+        name: a.name,
+        address: a.address,
+        lat: a.lat,
+        lng: a.lng,
+        category: "accommodation" // 숙소용 카테고리로 매핑
+      }));
+    }
+    if (savedPlaces) {
+      savedPlaces.forEach(p => list.push(p));
+    }
+    return list;
+  }, [savedPlaces, accommodations]);
 
   // DAY 자동 생성
   useEffect(() => {
@@ -161,7 +180,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       script.onload = initMapAndAutocomplete;
       document.head.appendChild(script);
     }
-  }, [showPlaceModal, placeTab, editPlaceModal, mapInstance]);
+  }, [showPlaceModal, placeTab, editPlaceModal, mapInstance, days]);
 
   // 지도 마커 및 경로 렌더링
   useEffect(() => {
@@ -509,15 +528,18 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
             {placeTab === "saved" ? (
               <div style={{ maxHeight: 350, overflowY: "auto" }}>
-                {!savedPlaces || savedPlaces.length === 0 ? (
+                {combinedSavedPlaces.length === 0 ? (
                   <div style={{ textAlign: "center", padding: 32, color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                    <p>저장된 장소가 없습니다.</p>
-                    <p style={{ marginTop: 4, fontSize: "0.78rem" }}>지도 탭에서 장소를 먼저 추가하거나, 직접 입력을 이용하세요.</p>
+                    <p>저장된 장소나 숙소가 없습니다.</p>
+                    <p style={{ marginTop: 4, fontSize: "0.78rem" }}>예약 또는 지도 탭에서 정보를 먼저 추가하거나, 직접 입력을 이용하세요.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {savedPlaces.map((p: any) => {
-                      const cat = CATEGORIES.find(c => c.id === p.category);
+                    {combinedSavedPlaces.map((p: any) => {
+                      // 숙소는 전용 카테고리 기호로 처리
+                      const cat = p.category === "accommodation" 
+                        ? { emoji: "🏨", label: "숙소" } 
+                        : CATEGORIES.find(c => c.id === p.category);
                       return (
                         <div key={p._id} onClick={() => handleAddSavedPlace(showPlaceModal, p)}
                           className="glass-hover" style={{ padding: "10px 14px", borderRadius: 10, cursor: "pointer", border: "1px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 10, background: "#fff" }}>
