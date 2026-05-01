@@ -189,17 +189,17 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
   const filterTypeBtn = (active: boolean) => ({
     padding: "6px 16px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
     border: "2px solid", cursor: "pointer", transition: "all 0.15s",
-    background: active ? "var(--mint)" : "transparent",
+    background: active ? "var(--lime)" : "transparent",
     color: active ? "#1a1a1a" : "var(--text-secondary)",
-    borderColor: active ? "var(--mint)" : "rgba(0,0,0,0.12)"
+    borderColor: active ? "var(--lime)" : "rgba(0,0,0,0.12)"
   } as React.CSSProperties);
 
   const filterPersonBtn = (active: boolean, dark = false) => ({
     padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
     border: "2px solid", cursor: "pointer", transition: "all 0.15s",
-    background: active ? (dark ? "#1a1a1a" : "var(--coral)") : "transparent",
+    background: active ? (dark ? "#1a1a1a" : "var(--lime)") : "transparent",
     color: active ? (dark ? "#fff" : "#1a1a1a") : "var(--text-secondary)",
-    borderColor: active ? (dark ? "#1a1a1a" : "var(--coral)") : "rgba(0,0,0,0.12)"
+    borderColor: active ? (dark ? "#1a1a1a" : "var(--lime)") : "rgba(0,0,0,0.12)"
   } as React.CSSProperties);
 
   return (
@@ -215,7 +215,7 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
 
       {/* 최종 정산 요약 */}
       {expenses && expenses.length > 0 && settlements.length > 0 && (
-        <div className="glass" style={{ padding: 24, border: "2px solid rgba(0,0,0,0.08)", background: "var(--lavender)", borderRadius: 20 }}>
+        <div className="glass" style={{ padding: 24, border: "2px solid rgba(0,0,0,0.08)", background: "var(--lime)", borderRadius: 20 }}>
           <h3 style={{ fontWeight: 800, fontSize: "1.05rem", marginBottom: 14, display: "flex", gap: 8, alignItems: "center", color: "#1a1a1a" }}>
             <span>💸</span> 최종 정산 결과
           </h3>

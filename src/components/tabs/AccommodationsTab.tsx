@@ -99,7 +99,7 @@ export default function AccommodationsTab({ trip, nickname }: { trip: any; nickn
               onClick={() => handleEdit(item)}>
                 {/* 호텔 헤더 바 */}
                 <div style={{ 
-                  background: "var(--yellow)",
+                  background: "var(--coral)",
                   padding: "12px 24px",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   borderBottom: "2px solid rgba(0,0,0,0.08)"
@@ -130,7 +130,7 @@ export default function AccommodationsTab({ trip, nickname }: { trip: any; nickn
                       </div>
                     )}
                     {item.confirmationNumber && (
-                      <div style={{ marginTop: 10, display: "inline-block", background: "var(--lavender)", color: "#1a1a1a", padding: "4px 12px", borderRadius: 8, fontSize: "0.8rem", fontWeight: 800 }}>
+                      <div style={{ marginTop: 10, display: "inline-block", background: "rgba(255,138,128,0.2)", color: "#1a1a1a", padding: "4px 12px", borderRadius: 8, fontSize: "0.8rem", fontWeight: 800 }}>
                         예약번호: {item.confirmationNumber}
                       </div>
                     )}

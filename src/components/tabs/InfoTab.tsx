@@ -186,11 +186,11 @@ export default function InfoTab({ trip }: { trip: any }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C`, bg: "var(--coral)" },
-                  { label: "습도", value: `${weatherData.current.humidity}%`, bg: "var(--sky)" },
-                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s`, bg: "var(--mint)" },
-                ].map(item => (
-                  <div key={item.label} style={{ background: item.bg, borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a" }}>
+                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C`, bg: "var(--yellow)" },
+                  { label: "습도", value: `${weatherData.current.humidity}%`, bg: "var(--yellow)" },
+                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s`, bg: "var(--yellow)" },
+                ].map((item, idx) => (
+                  <div key={item.label} style={{ background: item.bg, borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a", opacity: 1 - (idx * 0.15) }}>
                     <div style={{ fontSize: "0.68rem", fontWeight: 700, marginBottom: 1, opacity: 0.7 }}>{item.label}</div>
                     <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{item.value}</div>
                   </div>
@@ -260,7 +260,7 @@ export default function InfoTab({ trip }: { trip: any }) {
             <div style={{ textAlign: "center", padding: 20 }}><span className="spinner" /></div>
           ) : rate ? (
             <>
-              <div style={{ textAlign: "center", marginBottom: 16, padding: "18px", background: "var(--mint)", borderRadius: 16, color: "#1a1a1a" }}>
+              <div style={{ textAlign: "center", marginBottom: 16, padding: "18px", background: "var(--yellow)", borderRadius: 16, color: "#1a1a1a" }}>
                 <div style={{ fontSize: "0.82rem", color: "rgba(0,0,0,0.5)", marginBottom: 4, fontWeight: 700 }}>
                   1 {trip.currency} ({CURRENCY_NAMES[trip.currency] || trip.currency})
                 </div>

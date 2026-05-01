@@ -95,7 +95,7 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
               onClick={() => handleEdit(f)}>
                 {/* 티켓 상단 컬러 바 */}
                 <div style={{ 
-                  background: isReturn ? "linear-gradient(135deg, #ff8a80 0%, #ff5252 100%)" : "linear-gradient(135deg, #a8e6cf 0%, #66bb6a 100%)",
+                  background: isReturn ? "linear-gradient(135deg, #ff8a80 0%, #ff5252 100%)" : "var(--coral)",
                   padding: "12px 18px",
                   display: "flex", alignItems: "center", justifyContent: "space-between"
                 }}>

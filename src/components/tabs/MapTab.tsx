@@ -444,9 +444,9 @@ export default function MapTab({ trip }: { trip: any }) {
         <button onClick={() => setSelectedCat("all")} 
           style={{ 
             padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
-            background: selectedCat === "all" ? "var(--yellow)" : "transparent", 
+            background: selectedCat === "all" ? "var(--mint)" : "transparent", 
             color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
-            borderColor: selectedCat === "all" ? "var(--yellow)" : "rgba(0,0,0,0.1)",
+            borderColor: selectedCat === "all" ? "var(--mint)" : "rgba(0,0,0,0.1)",
           }}>
           모두
         </button>

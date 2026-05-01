@@ -103,14 +103,14 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>✅ 체크리스트</h2>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {total > 0 && <span className={`badge ${pct === 100 ? "badge-green" : "badge-yellow"}`}>{done}/{total} 완료</span>}
+          {total > 0 && <span className={`badge ${pct === 100 ? "badge-pink" : "badge-gray"}`} style={{ background: pct === 100 ? "var(--pink)" : "rgba(0,0,0,0.06)", color: "#1a1a1a" }}>{done}/{total} 완료</span>}
         </div>
       </div>
 
       {/* 진행률 바 */}
       {total > 0 && (
         <div style={{ background: "rgba(0,0,0,0.06)", borderRadius: 99, height: 12, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--mint)" : "var(--yellow)", borderRadius: 99, transition: "width 0.4s ease" }} />
+          <div style={{ height: "100%", width: `${pct}%`, background: "var(--pink)", borderRadius: 99, transition: "width 0.4s ease" }} />
         </div>
       )}
 
@@ -132,9 +132,9 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
               style={{
                 padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
                 border: "2px solid", cursor: "pointer", transition: "all 0.15s",
-                background: selectedAssignees.length === nicknames.length ? "var(--yellow)" : "transparent",
+                background: selectedAssignees.length === nicknames.length ? "var(--pink)" : "transparent",
                 color: selectedAssignees.length === nicknames.length ? "#1a1a1a" : "var(--text-secondary)",
-                borderColor: selectedAssignees.length === nicknames.length ? "var(--yellow)" : "rgba(0,0,0,0.1)",
+                borderColor: selectedAssignees.length === nicknames.length ? "var(--pink)" : "rgba(0,0,0,0.1)",
               }}>
               ✨ 모두
             </button>
@@ -144,9 +144,9 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
                 style={{
                   padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
                   border: "2px solid", cursor: "pointer", transition: "all 0.15s",
-                  background: selectedAssignees.includes(name) ? "var(--mint)" : "transparent",
+                  background: selectedAssignees.includes(name) ? "var(--pink)" : "transparent",
                   color: selectedAssignees.includes(name) ? "#1a1a1a" : "var(--text-secondary)",
-                  borderColor: selectedAssignees.includes(name) ? "var(--mint)" : "rgba(0,0,0,0.1)",
+                  borderColor: selectedAssignees.includes(name) ? "var(--pink)" : "rgba(0,0,0,0.1)",
                 }}>
                 👤 {name}
               </button>
