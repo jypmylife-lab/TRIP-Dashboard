@@ -136,5 +136,5 @@ export default defineSchema({
     nickname: v.string(),           // 작성자 닉네임
     text: v.string(),               // 댓글 내용
     createdAt: v.number(),
-  }).index("by_itemId", ["itemId"]).index("by_photoId", ["photoId"]),
+  }).index("by_itemId", ["itemId"]).index("by_photoId", ["photoId"]).index("by_tripId", ["tripId"]),
 });

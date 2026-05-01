@@ -74,7 +74,9 @@ export const updateNickname = mutation({
     }
 
     // 4. 일정 댓글 연동 업데이트
-    const comments = await ctx.db.query("itineraryComments").filter(q => q.eq(q.field("tripId"), args.tripId)).collect();
+    const comments = await ctx.db.query("itineraryComments")
+      .withIndex("by_tripId", q => q.eq("tripId", args.tripId))
+      .collect();
     for (const c of comments) {
       if (c.nickname === args.oldNickname) {
         await ctx.db.patch(c._id, { nickname: args.newNickname });

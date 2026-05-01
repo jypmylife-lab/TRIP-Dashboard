@@ -393,19 +393,25 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setDragOverItem(null);
   }
 
-  async function moveItemUp(item: any, dayItems: any[]) {
-    const idx = dayItems.findIndex((i: any) => i._id === item._id);
+  async function moveItemUp(itemId: string, dayId: string) {
+    const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx > 0) {
-      await updateItem({ itemId: item._id, orderIndex: dayItems[idx - 1].orderIndex });
-      await updateItem({ itemId: dayItems[idx - 1]._id, orderIndex: item.orderIndex });
+      const currentItem = dayItems[idx];
+      const prevItem = dayItems[idx - 1];
+      await updateItem({ itemId: currentItem._id, orderIndex: prevItem.orderIndex });
+      await updateItem({ itemId: prevItem._id, orderIndex: currentItem.orderIndex });
     }
   }
 
-  async function moveItemDown(item: any, dayItems: any[]) {
-    const idx = dayItems.findIndex((i: any) => i._id === item._id);
+  async function moveItemDown(itemId: string, dayId: string) {
+    const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx < dayItems.length - 1) {
-      await updateItem({ itemId: item._id, orderIndex: dayItems[idx + 1].orderIndex });
-      await updateItem({ itemId: dayItems[idx + 1]._id, orderIndex: item.orderIndex });
+      const currentItem = dayItems[idx];
+      const nextItem = dayItems[idx + 1];
+      await updateItem({ itemId: currentItem._id, orderIndex: nextItem.orderIndex });
+      await updateItem({ itemId: nextItem._id, orderIndex: currentItem.orderIndex });
     }
   }
 
@@ -447,7 +453,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             return (
               <div key={day._id} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
                 {/* DAY 헤더 */}
-                <div onClick={() => { if (!isExpanded) toggleDay(day._id); setFocusedDayId(day._id); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s", cursor: "pointer" }}>
+                <div onClick={() => { 
+                  if (!expandedDays.has(day._id)) toggleDay(day._id); 
+                  setFocusedDayId(null); // 강제 리트리거를 위해 잠시 해제
+                  setTimeout(() => setFocusedDayId(day._id), 0);
+                }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontWeight: 900, fontSize: "1.05rem", color: isExpanded ? "#1a1a1a" : "var(--text-primary)" }}>day {day.dayNumber}</span>
                     <span style={{ fontSize: "0.82rem", color: isExpanded ? "rgba(0,0,0,0.6)" : "var(--text-muted)", fontWeight: 600 }}>
@@ -539,8 +549,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                       {/* 드래그 및 순서 변경 */}
                                       {reorderItem === item._id ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center", background: "rgba(0,0,0,0.03)", padding: "4px 2px", borderRadius: 8 }}>
-                                          <button onClick={() => moveItemUp(item, dayItems)} disabled={idx === 0} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1 }}>⬆️</button>
-                                          <button onClick={() => moveItemDown(item, dayItems)} disabled={idx === dayItems.length - 1} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1 }}>⬇️</button>
+                                          <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1 }}>⬆️</button>
+                                          <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1 }}>⬇️</button>
                                           <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 12, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>✕</button>
                                         </div>
                                       ) : (
@@ -551,9 +561,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                           onDrop={() => handleDragDrop(dayItems)}
                                           onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
                                           onClick={() => setReorderItem(item._id)}
-                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "grab", padding: "4px 0", fontSize: 16, color: "rgba(0,0,0,0.35)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
-                                          title="클릭 또는 드래그하여 순서 변경"
-                                        >☰</div>
+                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "pointer", padding: "4px 0", fontSize: 18, color: "var(--accent)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
+                                          title="클릭하여 순서 변경"
+                                        >↕</div>
                                       )}
                                       
                                       {/* 편집 버튼 */}
