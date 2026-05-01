@@ -95,19 +95,20 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
               onClick={() => handleEdit(f)}>
                 {/* 티켓 상단 컬러 바 */}
                 <div style={{ 
-                  background: isReturn ? "linear-gradient(135deg, #ff8a80 0%, #ff5252 100%)" : "var(--coral)",
+                  background: "var(--yellow)",
                   padding: "12px 18px",
-                  display: "flex", alignItems: "center", justifyContent: "space-between"
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  borderBottom: "2px solid rgba(0,0,0,0.08)"
                 }}>
-                  <span style={{ color: isReturn ? "#fff" : "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
+                  <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
                     {isReturn ? "🛬 귀국편" : "🛫 출국편"}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: isReturn ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)", fontSize: "0.75rem", fontWeight: 700 }}>
+                    <span style={{ color: "rgba(0,0,0,0.6)", fontSize: "0.75rem", fontWeight: 700 }}>
                       {f.airline} · {f.flightNumber}
                     </span>
                     <button
-                      style={{ padding: "4px 10px", fontSize: "0.72rem", fontWeight: 700, color: isReturn ? "#fff" : "#1a1a1a", background: "rgba(0,0,0,0.1)", border: "2px solid rgba(0,0,0,0.1)", cursor: "pointer", borderRadius: 999 }}
+                      style={{ padding: "4px 10px", fontSize: "0.72rem", fontWeight: 700, color: "#1a1a1a", background: "rgba(0,0,0,0.05)", border: "2px solid rgba(0,0,0,0.05)", cursor: "pointer", borderRadius: 999 }}
                       onClick={(e) => { e.stopPropagation(); removeFlight({ flightId: f._id }); }}>
                       삭제
                     </button>

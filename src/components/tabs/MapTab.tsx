@@ -444,9 +444,9 @@ export default function MapTab({ trip }: { trip: any }) {
         <button onClick={() => setSelectedCat("all")} 
           style={{ 
             padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
-            background: selectedCat === "all" ? "var(--mint)" : "transparent", 
+            background: selectedCat === "all" ? "var(--lavender)" : "transparent", 
             color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
-            borderColor: selectedCat === "all" ? "var(--mint)" : "rgba(0,0,0,0.1)",
+            borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.1)",
           }}>
           모두
         </button>
@@ -454,9 +454,9 @@ export default function MapTab({ trip }: { trip: any }) {
           <button key={c.id} onClick={() => setSelectedCat(c.id)} 
             style={{ 
               padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
-              background: selectedCat === c.id ? "var(--mint)" : "transparent", 
+              background: selectedCat === c.id ? "var(--lavender)" : "transparent", 
               color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
-              borderColor: selectedCat === c.id ? "var(--mint)" : "rgba(0,0,0,0.1)",
+              borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.1)",
               display: "flex", alignItems: "center", gap: 4 
             }}>
             {c.emoji} {c.label}
@@ -476,10 +476,9 @@ export default function MapTab({ trip }: { trip: any }) {
             {selectedCat === "all" || selectedCat === "accommodation" ? accommodations.map(a => (
               <div key={a._id} className="glass glass-hover" style={{ 
                 padding: 16, cursor: "pointer", 
-                background: "#fffbeb",
-                border: "1px solid rgba(0,0,0,0.06)",
-                borderLeft: "3px solid #d4b248",
-                boxShadow: "0 2px 4px -2px rgba(0,0,0,0.03)"
+                background: "rgba(168,230,207,0.15)",
+                border: "2px solid var(--mint)",
+                borderRadius: 20
               }}
               onClick={() => focusPlace(a.lat, a.lng)}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -488,7 +487,7 @@ export default function MapTab({ trip }: { trip: any }) {
                       <span style={{ fontSize: 18 }}>🏨</span>
                       <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>{a.name}</span>
                     </div>
-                    <span className="badge badge-yellow" style={{ marginBottom: 6 }}>숙소</span>
+                    <span className="badge" style={{ marginBottom: 6, background: "var(--mint)", color: "#1a1a1a" }}>숙소</span>
                     {a.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>📍 {a.address}</p>}
                   </div>
                 </div>
@@ -505,7 +504,7 @@ export default function MapTab({ trip }: { trip: any }) {
             {places.filter(p => selectedCat === "all" || p.category === selectedCat).map(p => {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
-                <div key={p._id} className="glass glass-hover" style={{ padding: 16, cursor: "pointer", background: "#ffffff", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 4px -2px rgba(0,0,0,0.03)" }}
+                <div key={p._id} className="glass glass-hover" style={{ padding: 16, cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                     <div style={{ flex: 1 }}>
@@ -513,7 +512,7 @@ export default function MapTab({ trip }: { trip: any }) {
                         <span style={{ fontSize: 20 }}>{cat?.emoji || "📌"}</span>
                         <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>{p.name}</span>
                       </div>
-                      <span className="badge badge-purple" style={{ marginBottom: 6 }}>{cat?.label}</span>
+                      <span className="badge" style={{ marginBottom: 6, background: "var(--lavender)", color: "#1a1a1a" }}>{cat?.label}</span>
                       {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>📍 {p.address}</p>}
                       {p.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.78rem", marginTop: 4 }}>{p.notes}</p>}
                     </div>
