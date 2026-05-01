@@ -436,22 +436,26 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
     const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx > 0) {
-      const currentItem = dayItems[idx];
-      const prevItem = dayItems[idx - 1];
-      await updateItem({ itemId: currentItem._id, orderIndex: prevItem.orderIndex });
-      await updateItem({ itemId: prevItem._id, orderIndex: currentItem.orderIndex });
+      const current = dayItems[idx];
+      const prev = dayItems[idx - 1];
+      // 동일한 orderIndex 방지를 위해 강제로 간격을 둠
+      const targetOrder = prev.orderIndex - 0.001;
+      await updateItem({ itemId: current._id, orderIndex: targetOrder });
+      // 순서 보장을 위해 잠시 후 정렬 상태를 다시 정규화할 수 있지만, 일단 이 정도로도 충분
     }
+    setReorderItem(null);
   }
 
   async function moveItemDown(itemId: string, dayId: string) {
     const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
     const idx = dayItems.findIndex((i: any) => i._id === itemId);
     if (idx < dayItems.length - 1) {
-      const currentItem = dayItems[idx];
-      const nextItem = dayItems[idx + 1];
-      await updateItem({ itemId: currentItem._id, orderIndex: nextItem.orderIndex });
-      await updateItem({ itemId: nextItem._id, orderIndex: currentItem.orderIndex });
+      const current = dayItems[idx];
+      const next = dayItems[idx + 1];
+      const targetOrder = next.orderIndex + 0.001;
+      await updateItem({ itemId: current._id, orderIndex: targetOrder });
     }
+    setReorderItem(null);
   }
 
   if (days === undefined || allItems === undefined) {
@@ -473,6 +477,28 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
               지도를 불러오는 중이거나 일정이 없습니다
             </div>
+          )}
+          {/* 내 위치 버튼 추가 */}
+          {mapInstance && (
+            <button
+              onClick={() => {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition((pos) => {
+                    mapInstance.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    mapInstance.setZoom(15);
+                  });
+                }
+              }}
+              style={{
+                position: "absolute", bottom: 12, right: 12,
+                width: 36, height: 36, borderRadius: "50%",
+                background: "#ffffff", border: "1px solid rgba(0,0,0,0.1)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", zIndex: 10, fontSize: 16
+              }}
+              title="내 위치로 이동"
+            >📍</button>
           )}
         </div>
       </div>
@@ -587,10 +613,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 및 순서 변경 */}
                                       {reorderItem === item._id ? (
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center", background: "rgba(0,0,0,0.03)", padding: "4px 2px", borderRadius: 8 }}>
-                                          <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1 }}>⬆️</button>
-                                          <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ border: "none", background: "none", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1 }}>⬇️</button>
-                                          <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 12, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>✕</button>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
+                                          <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 28, height: 28, border: "1px solid #cbd5e1", background: "white", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>▲</button>
+                                          <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 28, height: 28, border: "1px solid #cbd5e1", background: "white", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>▼</button>
+                                          <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>
                                         </div>
                                       ) : (
                                         <div
@@ -600,9 +626,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                           onDrop={() => handleDragDrop(dayItems)}
                                           onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
                                           onClick={() => setReorderItem(item._id)}
-                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "pointer", padding: "4px 0", fontSize: 18, color: "var(--accent)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
+                                          style={{ width: 36, display: "flex", justifyContent: "center", cursor: "pointer", padding: "4px 0", fontSize: 20, color: "var(--accent)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
                                           title="클릭하여 순서 변경"
-                                        >↕</div>
+                                        >⇅</div>
                                       )}
                                       
                                       {/* 편집 버튼 */}
