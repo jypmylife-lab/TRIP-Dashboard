@@ -380,13 +380,13 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
-      <div style={{ position: "sticky", top: 10, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg)", paddingTop: 8, paddingBottom: 8, margin: "-8px -8px 0", padding: "8px 8px 12px" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
         </div>
 
         {/* 상단 지도 영역 (경로 표시) */}
-        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, border: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
+        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 200, flexShrink: 0, border: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
           <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
           {!mapInstance && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
@@ -411,7 +411,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             return (
               <div key={day._id} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
                 {/* DAY 헤더 */}
-                <div onClick={() => setFocusedDayId(day._id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s", cursor: "pointer" }}>
+                <div onClick={() => { if (!isExpanded) toggleDay(day._id); setFocusedDayId(day._id); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: isExpanded ? "var(--sky)" : "transparent", transition: "background 0.2s", cursor: "pointer" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontWeight: 900, fontSize: "1.05rem", color: isExpanded ? "#1a1a1a" : "var(--text-primary)" }}>day {day.dayNumber}</span>
                     <span style={{ fontSize: "0.82rem", color: isExpanded ? "rgba(0,0,0,0.6)" : "var(--text-muted)", fontWeight: 600 }}>
@@ -499,7 +499,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     </div>
 
                                     {/* 액션 버튼 */}
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 8, alignItems: "center" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 핸들 */}
                                       <div
                                         draggable
@@ -507,7 +507,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                         onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
                                         onDrop={() => handleDragDrop(dayItems)}
                                         onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
-                                        style={{ cursor: "grab", padding: "4px 8px", fontSize: 16, color: "rgba(0,0,0,0.35)", lineHeight: 1, userSelect: "none" }}
+                                        style={{ width: 36, display: "flex", justifyContent: "center", cursor: "grab", padding: "4px 0", fontSize: 16, color: "rgba(0,0,0,0.35)", lineHeight: 1, userSelect: "none", touchAction: "none" }}
                                         title="드래그하여 순서 변경"
                                       >☰</div>
                                       {/* 편집 버튼 */}
@@ -519,11 +519,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             address: item.placeAddress || "", time: item.time || "",
                                             lat: item.placeLat, lng: item.placeLng
                                           });
-                                        }} style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "4px 6px", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>편집</button>
+                                        }} style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "5px 0", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>편집</button>
                                       )}
                                       {/* 삭제 버튼 */}
                                       <button onClick={() => removeItem({ itemId: item._id })}
-                                        style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
+                                        style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 0", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
                                     </div>
                                   </div>
 
