@@ -159,27 +159,21 @@ export const updateItem = mutation({
   },
 });
 
-// 두 항목의 순서 교체 (Atomic Swap)
 export const swapItems = mutation({
   args: {
     itemAId: v.id("itineraryItems"),
     itemBId: v.id("itineraryItems"),
   },
   handler: async (ctx, args) => {
-    try {
-      const itemA = await ctx.db.get(args.itemAId);
-      const itemB = await ctx.db.get(args.itemBId);
-      if (!itemA || !itemB) return;
-      
-      const indexA = typeof itemA.orderIndex === "number" ? itemA.orderIndex : 0;
-      const indexB = typeof itemB.orderIndex === "number" ? itemB.orderIndex : 0;
-      
-      await ctx.db.patch(args.itemAId, { orderIndex: indexB });
-      await ctx.db.patch(args.itemBId, { orderIndex: indexA });
-    } catch (e) {
-      console.error("Swap items failed", e);
-      throw new Error("순서 변경 중 서버 오류가 발생했습니다.");
-    }
+    const itemA = await ctx.db.get(args.itemAId);
+    const itemB = await ctx.db.get(args.itemBId);
+    if (!itemA || !itemB) return;
+    
+    const indexA = itemA.orderIndex;
+    const indexB = itemB.orderIndex;
+    
+    await ctx.db.patch(args.itemAId, { orderIndex: indexB });
+    await ctx.db.patch(args.itemBId, { orderIndex: indexA });
   },
 });
 

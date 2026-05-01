@@ -438,16 +438,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   }
 
   async function moveItemUp(itemId: string, dayId: string) {
-    const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-    const idx = dayItems.findIndex((i: any) => i._id === itemId);
+    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
     if (idx > 0) {
       await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx - 1]._id });
     }
   }
 
   async function moveItemDown(itemId: string, dayId: string) {
-    const dayItems = (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-    const idx = dayItems.findIndex((i: any) => i._id === itemId);
+    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
     if (idx < dayItems.length - 1) {
       await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx + 1]._id });
     }
@@ -540,15 +540,30 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button onClick={(e) => { e.stopPropagation(); setReorderDayId(reorderDayId === day._id ? null : day._id); }}
+                    <button onClick={(e) => { 
+                      e.stopPropagation(); 
+                      const isActivating = String(reorderDayId) !== String(day._id);
+                      if (isActivating) {
+                        // 순서 변경 모드 진입 시 강제로 펼침
+                        setExpandedDays(prev => {
+                          const n = new Set(prev);
+                          n.add(day._id);
+                          return n;
+                        });
+                        setFocusedDayId(day._id);
+                        setReorderDayId(day._id);
+                      } else {
+                        setReorderDayId(null);
+                      }
+                    }}
                       style={{ 
                         padding: "5px 12px", borderRadius: 10, fontSize: "0.72rem", fontWeight: 800, 
-                        background: reorderDayId === day._id ? "var(--accent)" : "rgba(0,0,0,0.06)", 
-                        color: reorderDayId === day._id ? "#fff" : "var(--text-secondary)", 
+                        background: String(reorderDayId) === String(day._id) ? "var(--accent)" : "rgba(0,0,0,0.06)", 
+                        color: String(reorderDayId) === String(day._id) ? "#fff" : "var(--text-secondary)", 
                         border: "none", cursor: "pointer", transition: "all 0.15s",
-                        boxShadow: reorderDayId === day._id ? "0 2px 6px rgba(99,102,241,0.3)" : "none"
+                        boxShadow: String(reorderDayId) === String(day._id) ? "0 2px 6px rgba(99,102,241,0.3)" : "none"
                       }}>
-                      {reorderDayId === day._id ? "완료" : "순서 변경"}
+                      {String(reorderDayId) === String(day._id) ? "완료" : "순서 변경"}
                     </button>
                     <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
@@ -633,16 +648,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     {/* 액션 버튼 */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 및 순서 변경 */}
-                                      {(reorderDayId === day._id || reorderItem === item._id) ? (
+                                      {(String(reorderDayId) === String(day._id) || reorderItem === item._id) ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
-                                          <button type="button" onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
-                                          <button type="button" onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          {reorderItem === item._id && !reorderDayId && <button type="button" onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
+                                          <button type="button" onClick={(e) => { e.stopPropagation(); moveItemUp(item._id, day._id); }} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
+                                          <button type="button" onClick={(e) => { e.stopPropagation(); moveItemDown(item._id, day._id); }} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
+                                          {reorderItem === item._id && String(reorderDayId) !== String(day._id) && <button type="button" onClick={(e) => { e.stopPropagation(); setReorderItem(null); }} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
                                         </div>
                                       ) : (
                                         <div
-                                          draggable
-                                          onDragStart={() => setDragItem(item)}
+                                          draggable={!reorderDayId}
+                                          onDragStart={() => !reorderDayId && setDragItem(item)}
                                           onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
                                           onDrop={() => handleDragDrop(dayItems)}
                                           onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
