@@ -12,12 +12,12 @@ import ExpensesTab from "@/components/tabs/ExpensesTab";
 import { THEME_COLORS } from "@/lib/theme";
 
 const TABS = [
-  { id: "bookings", label: "예약", icon: "🎫" },
-  { id: "map", label: "지도", icon: "🗺️" },
-  { id: "itinerary", label: "일정", icon: "📅" },
-  { id: "info", label: "정보", icon: "ℹ️" },
-  { id: "checklist", label: "체크", icon: "📋" },
-  { id: "expenses", label: "지출", icon: "💸" },
+  { id: "bookings", label: "예약", icon: "✈️" },
+  { id: "map", label: "지도", icon: "📍" },
+  { id: "itinerary", label: "일정", icon: "🗓️" },
+  { id: "info", label: "정보", icon: "⚡" },
+  { id: "checklist", label: "체크", icon: "✅" },
+  { id: "expenses", label: "지출", icon: "💰" },
 ];
 
 export default function TripPage() {

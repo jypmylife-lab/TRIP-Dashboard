@@ -154,7 +154,7 @@ export default function InfoTab({ trip }: { trip: any }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>ℹ️ 여행 정보</h2>
+      <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>ℹ️ 여행 정보</h2>
 
       {/* ═══ 날씨 정보 ═══ */}
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -170,35 +170,36 @@ export default function InfoTab({ trip }: { trip: any }) {
       {weatherLoading && !weatherData && <div style={{ textAlign: "center", padding: 60 }}><span className="spinner" style={{ margin: "0 auto", width: 32, height: 32 }} /></div>}
 
       {weatherData && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div className="glass" style={{ padding: 28, background: "linear-gradient(135deg, #1e3a5f 0%, #2d5a9f 100%)", color: "#fff", border: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="glass" style={{ padding: 28, background: "linear-gradient(135deg, #1a1a1a 0%, #333333 100%)", color: "#fff", border: "none", borderRadius: 24, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative" }}>
               <div>
-                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.82rem", marginBottom: 4 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.84rem", marginBottom: 6, fontWeight: 600 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <span style={{ fontSize: 64 }}>{weatherEmoji(weatherData.current.icon)}</span>
                   <div>
-                    <div style={{ fontSize: "3rem", fontWeight: 700, lineHeight: 1 }}>{weatherData.current.temp}°</div>
-                    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.9rem", marginTop: 4, textTransform: "capitalize" }}>{weatherData.current.description}</div>
+                    <div style={{ fontSize: "3.2rem", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em" }}>{weatherData.current.temp}°</div>
+                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.92rem", marginTop: 4, textTransform: "capitalize", fontWeight: 600 }}>{weatherData.current.description}</div>
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C` },
-                  { label: "습도", value: `${weatherData.current.humidity}%` },
-                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s` },
+                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C`, bg: "var(--coral)" },
+                  { label: "습도", value: `${weatherData.current.humidity}%`, bg: "var(--sky)" },
+                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s`, bg: "var(--mint)" },
                 ].map(item => (
-                  <div key={item.label} style={{ background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 18px", textAlign: "center" }}>
-                    <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.65)", marginBottom: 2 }}>{item.label}</div>
-                    <div style={{ fontWeight: 600, fontSize: "1rem" }}>{item.value}</div>
+                  <div key={item.label} style={{ background: item.bg, borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a" }}>
+                    <div style={{ fontSize: "0.68rem", fontWeight: 700, marginBottom: 1, opacity: 0.7 }}>{item.label}</div>
+                    <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <h3 style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--text-secondary)", marginTop: 8 }}>
+          <h3 style={{ fontWeight: 800, fontSize: "0.98rem", color: "var(--text-secondary)", marginTop: 8, letterSpacing: "-0.01em" }}>
             여행 일정 날씨 예보 ({trip.startDate} ~ {trip.endDate})
           </h3>
           {(() => {
@@ -210,15 +211,18 @@ export default function InfoTab({ trip }: { trip: any }) {
             );
             return (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
-                {valid.map(day => (
-                  <div key={day.date} className="glass" style={{ padding: 14, textAlign: "center", borderRadius: 12, background: "#fff", border: "1px solid rgba(0,0,0,0.05)" }}>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 8, fontWeight: 600 }}>{formatDate(day.date)}</div>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>{weatherEmoji(day.icon)}</div>
-                    <div style={{ fontSize: "1rem", fontWeight: 700 }}>{day.maxTemp}°</div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{day.minTemp}°</div>
-                    <div style={{ fontSize: "0.65rem", color: "var(--text-secondary)", marginTop: 4, lineHeight: 1.3 }}>{day.description}</div>
+                {valid.map((day, i) => {
+                  const bgColors = ["var(--mint)", "var(--yellow)", "var(--coral)", "var(--sky)", "var(--lavender)"];
+                  return (
+                  <div key={day.date} className="glass" style={{ padding: 16, textAlign: "center", borderRadius: 16, background: bgColors[i % bgColors.length], border: "2px solid rgba(0,0,0,0.06)", color: "#1a1a1a" }}>
+                    <div style={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.55)", marginBottom: 8, fontWeight: 700 }}>{formatDate(day.date)}</div>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>{weatherEmoji(day.icon)}</div>
+                    <div style={{ fontSize: "1.05rem", fontWeight: 900 }}>{day.maxTemp}°</div>
+                    <div style={{ fontSize: "0.82rem", color: "rgba(0,0,0,0.45)", fontWeight: 600 }}>{day.minTemp}°</div>
+                    <div style={{ fontSize: "0.66rem", color: "rgba(0,0,0,0.5)", marginTop: 4, lineHeight: 1.3, fontWeight: 600 }}>{day.description}</div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
@@ -227,19 +231,19 @@ export default function InfoTab({ trip }: { trip: any }) {
 
       {/* ═══ 시차 정보 ═══ */}
       {(timezone || offsetSeconds !== undefined) && (
-        <div className="glass" style={{ padding: 20, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", color: "#fff", border: "none", borderRadius: 16 }}>
-          <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", marginBottom: 12, fontWeight: 600 }}>🕐 시차 정보</div>
+        <div className="glass" style={{ padding: 22, background: "var(--yellow)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
+          <div style={{ fontSize: "0.8rem", color: "rgba(0,0,0,0.5)", marginBottom: 12, fontWeight: 800 }}>🕐 시차 정보</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>🇰🇷 한국</div>
-              <div style={{ fontSize: "2rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{koreaTime}</div>
+              <div style={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.5)", marginBottom: 4, fontWeight: 700 }}>🇰🇷 한국</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{koreaTime}</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>📍 {trip.destination}</div>
-              <div style={{ fontSize: "2rem", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{localTime}</div>
+              <div style={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.5)", marginBottom: 4, fontWeight: 700 }}>📍 {trip.destination}</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{localTime}</div>
             </div>
           </div>
-          <div style={{ textAlign: "center", marginTop: 10, fontSize: "0.82rem", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.08)", padding: "6px 14px", borderRadius: 20, display: "inline-block", width: "100%" }}>
+          <div style={{ textAlign: "center", marginTop: 10, fontSize: "0.84rem", color: "rgba(0,0,0,0.6)", background: "rgba(0,0,0,0.06)", padding: "6px 14px", borderRadius: 999, display: "inline-block", width: "100%", fontWeight: 700 }}>
             {getTimeDiff()}
           </div>
         </div>
@@ -247,20 +251,20 @@ export default function InfoTab({ trip }: { trip: any }) {
 
       {/* ═══ 환율 정보 ═══ */}
       {trip.currency && trip.currency !== "KRW" && (
-        <div className="glass" style={{ padding: 20, borderRadius: 16 }}>
+        <div className="glass" style={{ padding: 22, borderRadius: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>💱 환율 정보</div>
-            {isFallback && <span className="badge badge-yellow" style={{ fontSize: "0.6rem" }}>참고용 환율</span>}
+            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", fontWeight: 800 }}>💱 환율 정보</div>
+            {isFallback && <span className="badge badge-yellow" style={{ fontSize: "0.62rem" }}>참고용 환율</span>}
           </div>
           {rateLoading ? (
             <div style={{ textAlign: "center", padding: 20 }}><span className="spinner" /></div>
           ) : rate ? (
             <>
-              <div style={{ textAlign: "center", marginBottom: 16, padding: "16px", background: "rgba(99,102,241,0.04)", borderRadius: 12 }}>
-                <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4 }}>
+              <div style={{ textAlign: "center", marginBottom: 16, padding: "18px", background: "var(--mint)", borderRadius: 16, color: "#1a1a1a" }}>
+                <div style={{ fontSize: "0.82rem", color: "rgba(0,0,0,0.5)", marginBottom: 4, fontWeight: 700 }}>
                   1 {trip.currency} ({CURRENCY_NAMES[trip.currency] || trip.currency})
                 </div>
-                <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--accent)" }}>
+                <div style={{ fontSize: "2.2rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
                   {rate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} ₩
                 </div>
               </div>
@@ -271,8 +275,8 @@ export default function InfoTab({ trip }: { trip: any }) {
                     value={calcAmount} onChange={e => setCalcAmount(e.target.value)} style={{ textAlign: "center", fontSize: "1rem", fontWeight: 600 }} />
                 </div>
                 <button onClick={() => setCalcDirection(d => d === "toKRW" ? "fromKRW" : "toKRW")}
-                  style={{ width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(0,0,0,0.1)", background: "#fff", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>⇄</button>
-                <div style={{ flex: 1, textAlign: "center", padding: "10px", background: "rgba(0,0,0,0.02)", borderRadius: 10, fontSize: "1rem", fontWeight: 700, color: calcResult ? "var(--accent)" : "var(--text-muted)", minHeight: 42, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.1)", background: "var(--yellow)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800 }}>⇄</button>
+                <div style={{ flex: 1, textAlign: "center", padding: "10px", background: "rgba(0,0,0,0.03)", borderRadius: 12, fontSize: "1.05rem", fontWeight: 800, color: calcResult ? "var(--text-primary)" : "var(--text-muted)", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {calcResult || (calcDirection === "toKRW" ? "₩ ?" : `${sym} ?`)}
                 </div>
               </div>

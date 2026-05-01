@@ -69,7 +69,7 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>✈️ 항공편</h2>
+        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>✈️ 항공편</h2>
         <button className="btn-primary" onClick={() => setShowForm(true)}>+ 항공편 추가</button>
       </div>
 
@@ -81,73 +81,72 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
             <p style={{ fontSize: "0.8rem", marginTop: 6 }}>항공권 이미지를 업로드하면 AI가 자동으로 분석해줍니다</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {flights.map(f => {
               const isReturn = f.type === "return";
               return (
               <div key={f._id} className="glass glass-hover" style={{
                 background: "#ffffff",
-                borderRadius: "14px",
-                border: "1px solid rgba(0,0,0,0.06)",
-                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.03)",
+                borderRadius: 20,
+                border: "2px solid rgba(0,0,0,0.08)",
                 cursor: "pointer",
                 overflow: "hidden"
               }}
               onClick={() => handleEdit(f)}>
                 {/* 티켓 상단 컬러 바 */}
                 <div style={{ 
-                  background: isReturn ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #6366f1, #4f46e5)",
-                  padding: "10px 16px",
+                  background: isReturn ? "linear-gradient(135deg, #ff8a80 0%, #ff5252 100%)" : "linear-gradient(135deg, #a8e6cf 0%, #66bb6a 100%)",
+                  padding: "12px 18px",
                   display: "flex", alignItems: "center", justifyContent: "space-between"
                 }}>
-                  <span style={{ color: "#fff", fontSize: "0.72rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+                  <span style={{ color: isReturn ? "#fff" : "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>
                     {isReturn ? "🛬 귀국편" : "🛫 출국편"}
                   </span>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.72rem" }}>
+                    <span style={{ color: isReturn ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)", fontSize: "0.75rem", fontWeight: 700 }}>
                       {f.airline} · {f.flightNumber}
                     </span>
                     <button
-                      style={{ padding: "3px 8px", fontSize: "0.7rem", color: "rgba(255,255,255,0.8)", background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", borderRadius: 5, flexShrink: 0 }}
+                      style={{ padding: "4px 10px", fontSize: "0.72rem", fontWeight: 700, color: isReturn ? "#fff" : "#1a1a1a", background: "rgba(0,0,0,0.1)", border: "2px solid rgba(0,0,0,0.1)", cursor: "pointer", borderRadius: 999 }}
                       onClick={(e) => { e.stopPropagation(); removeFlight({ flightId: f._id }); }}>
                       삭제
                     </button>
                   </div>
                 </div>
 
-                {/* 티켓 본문: 3열 그리드 */}
-                <div style={{ padding: "16px", display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "center" }}>
+                {/* 티켓 본문 */}
+                <div style={{ padding: "18px", display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "center" }}>
                   <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>출발</div>
-                    <div style={{ fontSize: "clamp(0.78rem, 2.5vw, 0.9rem)", fontWeight: 700, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
+                    <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 2, fontWeight: 600 }}>출발</div>
+                    <div style={{ fontSize: "clamp(0.82rem, 2.5vw, 0.95rem)", fontWeight: 800, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
                       {f.departure}
                     </div>
-                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--accent)", marginTop: 4 }}>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
                       {f.departureTime}
                     </div>
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 4px 0" }}>
-                    <div style={{ width: 60, height: 1, background: "rgba(0,0,0,0.15)", position: "relative" }}>
-                      <div style={{ position: "absolute", right: -4, top: -4, fontSize: 9, color: "var(--text-muted)" }}>▶</div>
+                    <div style={{ width: 50, height: 2, background: "rgba(0,0,0,0.12)", borderRadius: 1, position: "relative" }}>
+                      <div style={{ position: "absolute", right: -5, top: -4, fontSize: 10, color: "var(--text-muted)" }}>▶</div>
                     </div>
-                    <span style={{ fontSize: "0.6rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{f.date}</span>
+                    <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap", background: "rgba(0,0,0,0.04)", padding: "2px 8px", borderRadius: 999 }}>{f.date}</span>
                   </div>
 
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 2 }}>도착</div>
-                    <div style={{ fontSize: "clamp(0.78rem, 2.5vw, 0.9rem)", fontWeight: 700, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
+                    <div style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: 2, fontWeight: 600 }}>도착</div>
+                    <div style={{ fontSize: "clamp(0.82rem, 2.5vw, 0.95rem)", fontWeight: 800, lineHeight: 1.3, color: "var(--text-primary)", wordBreak: "keep-all" }}>
                       {f.arrival}
                     </div>
-                    <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-secondary)", marginTop: 4 }}>
+                    <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "var(--text-secondary)", marginTop: 4 }}>
                       {f.arrivalTime}
                     </div>
                   </div>
                 </div>
 
                 {f.notes && (
-                  <div style={{ padding: "8px 16px 12px", borderTop: "1px dashed rgba(0,0,0,0.06)" }}>
-                    <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>📝 {f.notes}</span>
+                  <div style={{ padding: "10px 18px 14px", borderTop: "2px dashed rgba(0,0,0,0.06)" }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontWeight: 500 }}>📝 {f.notes}</span>
                   </div>
                 )}
               </div>
