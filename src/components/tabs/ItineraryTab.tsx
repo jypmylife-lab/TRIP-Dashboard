@@ -106,8 +106,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const myLocationMarkerRef = useRef<any>(null);
   const lastPosRef = useRef<{lat: number, lng: number} | null>(null);
 
-  const [reorderDayId, setReorderDayId] = useState<string | null>(null);
-
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
 
@@ -438,28 +436,24 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   }
 
   async function moveItemUp(itemId: string, dayId: string) {
-    try {
-      const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-      const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
-      if (idx > 0) {
-        await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx - 1]._id });
-      }
-    } catch (err: any) {
-      console.error("Move up failed", err);
-      alert("순서 변경 중 오류가 발생했습니다: " + err.message);
+    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
+    if (idx > 0) {
+      const current = dayItems[idx];
+      const prev = dayItems[idx - 1];
+      const targetOrder = prev.orderIndex - 0.001;
+      await updateItem({ itemId: current._id, orderIndex: targetOrder });
     }
   }
 
   async function moveItemDown(itemId: string, dayId: string) {
-    try {
-      const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
-      const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
-      if (idx < dayItems.length - 1) {
-        await swapItems({ itemAId: dayItems[idx]._id, itemBId: dayItems[idx + 1]._id });
-      }
-    } catch (err: any) {
-      console.error("Move down failed", err);
-      alert("순서 변경 중 오류가 발생했습니다: " + err.message);
+    const dayItems = (allItems || []).filter((it: any) => String(it.dayId) === String(dayId)).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+    const idx = dayItems.findIndex((i: any) => String(i._id) === String(itemId));
+    if (idx < dayItems.length - 1) {
+      const current = dayItems[idx];
+      const next = dayItems[idx + 1];
+      const targetOrder = next.orderIndex + 0.001;
+      await updateItem({ itemId: current._id, orderIndex: targetOrder });
     }
   }
 
@@ -550,31 +544,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <button onClick={(e) => { 
-                      e.stopPropagation(); 
-                      const isActivating = String(reorderDayId) !== String(day._id);
-                      if (isActivating) {
-                        // 순서 변경 모드 진입 시 강제로 펼침
-                        setExpandedDays(prev => {
-                          const n = new Set(prev);
-                          n.add(day._id);
-                          return n;
-                        });
-                        setFocusedDayId(day._id);
-                        setReorderDayId(day._id);
-                      } else {
-                        setReorderDayId(null);
-                      }
-                    }}
-                      style={{ 
-                        padding: "5px 12px", borderRadius: 10, fontSize: "0.72rem", fontWeight: 800, 
-                        background: String(reorderDayId) === String(day._id) ? "var(--accent)" : "rgba(0,0,0,0.06)", 
-                        color: String(reorderDayId) === String(day._id) ? "#fff" : "var(--text-secondary)", 
-                        border: "none", cursor: "pointer", transition: "all 0.15s",
-                        boxShadow: String(reorderDayId) === String(day._id) ? "0 2px 6px rgba(99,102,241,0.3)" : "none"
-                      }}>
-                      {String(reorderDayId) === String(day._id) ? "완료" : "순서 변경"}
-                    </button>
                     <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
                       <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
@@ -658,16 +627,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     {/* 액션 버튼 */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 및 순서 변경 */}
-                                      {(String(reorderDayId) === String(day._id) || reorderItem === item._id) ? (
+                                      {reorderItem === item._id ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                                           <button type="button" onClick={(e) => { e.stopPropagation(); moveItemUp(item._id, day._id); }} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
                                           <button type="button" onClick={(e) => { e.stopPropagation(); moveItemDown(item._id, day._id); }} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          {reorderItem === item._id && String(reorderDayId) !== String(day._id) && <button type="button" onClick={(e) => { e.stopPropagation(); setReorderItem(null); }} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
+                                          <button type="button" onClick={(e) => { e.stopPropagation(); setReorderItem(null); }} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>
                                         </div>
                                       ) : (
                                         <div
-                                          draggable={!reorderDayId}
-                                          onDragStart={() => !reorderDayId && setDragItem(item)}
+                                          draggable
+                                          onDragStart={() => setDragItem(item)}
                                           onDragOver={(e) => { e.preventDefault(); setDragOverItem(item); }}
                                           onDrop={() => handleDragDrop(dayItems)}
                                           onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
