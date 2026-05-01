@@ -101,16 +101,16 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>📋 체크리스트</h2>
+        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>✅ 체크리스트</h2>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {total > 0 && <span className={`badge ${pct === 100 ? "badge-green" : "badge-purple"}`}>{done}/{total} 완료</span>}
+          {total > 0 && <span className={`badge ${pct === 100 ? "badge-green" : "badge-yellow"}`}>{done}/{total} 완료</span>}
         </div>
       </div>
 
       {/* 진행률 바 */}
       {total > 0 && (
-        <div style={{ background: "rgba(0,0,0,0.05)", borderRadius: 99, height: 8, overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--success)" : "var(--accent)", borderRadius: 99, transition: "width 0.4s ease" }} />
+        <div style={{ background: "rgba(0,0,0,0.06)", borderRadius: 99, height: 12, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "var(--mint)" : "var(--yellow)", borderRadius: 99, transition: "width 0.4s ease" }} />
         </div>
       )}
 
@@ -130,11 +130,11 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
             <button type="button"
               onClick={() => setSelectedAssignees(selectedAssignees.length === nicknames.length ? [] : [...nicknames])}
               style={{
-                padding: "4px 12px", borderRadius: 99, fontSize: "0.78rem", fontWeight: 700,
-                border: "1px solid", cursor: "pointer", transition: "all 0.15s",
-                background: selectedAssignees.length === nicknames.length ? "var(--accent)" : "transparent",
-                color: selectedAssignees.length === nicknames.length ? "#fff" : "var(--accent)",
-                borderColor: "var(--accent)",
+                padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
+                border: "2px solid", cursor: "pointer", transition: "all 0.15s",
+                background: selectedAssignees.length === nicknames.length ? "var(--yellow)" : "transparent",
+                color: selectedAssignees.length === nicknames.length ? "#1a1a1a" : "var(--text-secondary)",
+                borderColor: selectedAssignees.length === nicknames.length ? "var(--yellow)" : "rgba(0,0,0,0.1)",
               }}>
               ✨ 모두
             </button>
@@ -142,12 +142,11 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
               <button key={name} type="button"
                 onClick={() => toggleAssignee(name, selectedAssignees, setSelectedAssignees)}
                 style={{
-                  padding: "4px 12px", borderRadius: 99, fontSize: "0.78rem", fontWeight: 600,
-                  border: "1px solid",
-                  cursor: "pointer", transition: "all 0.15s",
-                  background: selectedAssignees.includes(name) ? "var(--accent)" : "transparent",
-                  color: selectedAssignees.includes(name) ? "#fff" : "var(--text-secondary)",
-                  borderColor: selectedAssignees.includes(name) ? "var(--accent)" : "rgba(0,0,0,0.12)",
+                  padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
+                  border: "2px solid", cursor: "pointer", transition: "all 0.15s",
+                  background: selectedAssignees.includes(name) ? "var(--mint)" : "transparent",
+                  color: selectedAssignees.includes(name) ? "#1a1a1a" : "var(--text-secondary)",
+                  borderColor: selectedAssignees.includes(name) ? "var(--mint)" : "rgba(0,0,0,0.1)",
                 }}>
                 👤 {name}
               </button>
@@ -177,15 +176,14 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
             return (
               <div key={item._id} className="glass glass-hover" style={{
                 background: "#ffffff",
-                padding: "14px 18px",
+                padding: "16px 20px",
                 display: "flex",
                 alignItems: "flex-start",
                 gap: 12,
                 opacity: item.completed ? 0.55 : 1,
                 transition: "all 0.2s",
-                border: "1px solid rgba(0,0,0,0.05)",
-                borderRadius: "12px",
-                boxShadow: "0 2px 4px -2px rgba(0,0,0,0.03)"
+                border: "2px solid rgba(0,0,0,0.08)",
+                borderRadius: "20px"
               }}>
                 <button
                   onClick={(e) => {

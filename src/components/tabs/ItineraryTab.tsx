@@ -322,11 +322,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>📅 일정</h2>
+        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
       </div>
 
       {/* 상단 지도 영역 (경로 표시) */}
-      <div className="glass" style={{ borderRadius: 16, overflow: "hidden", height: 220, position: "relative" }}>
+      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 220, position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
         <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
         {!mapInstance && (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
@@ -348,20 +348,20 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             const dayItems = getItemsForDay(day._id);
             const td = tripDays.find(t => t.dayNumber === day.dayNumber);
             return (
-              <div key={day._id} className="glass" style={{ overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)" }}>
+              <div key={day._id} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
                 {/* DAY 헤더 */}
                 <div onClick={() => toggleDay(day._id)}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", cursor: "pointer", background: isExpanded ? "rgba(99,102,241,0.03)" : "transparent", transition: "background 0.2s" }}>
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", cursor: "pointer", background: isExpanded ? "var(--mint)" : "transparent", transition: "background 0.2s" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontWeight: 800, fontSize: "1rem", color: "var(--accent)" }}>day {day.dayNumber}</span>
-                    <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                    <span style={{ fontWeight: 900, fontSize: "1.05rem", color: isExpanded ? "#1a1a1a" : "var(--text-primary)" }}>day {day.dayNumber}</span>
+                    <span style={{ fontSize: "0.82rem", color: isExpanded ? "rgba(0,0,0,0.6)" : "var(--text-muted)", fontWeight: 600 }}>
                       {formatShortDate(day.date)}/{td?.weekday || ""}
                     </span>
-                    {day.title && <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontWeight: 500 }}>· {day.title}</span>}
+                    {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className="badge badge-purple" style={{ fontSize: "0.65rem" }}>{dayItems.length}개</span>
-                    <span style={{ fontSize: 14, color: "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+                    <span className="badge badge-yellow" style={{ fontSize: "0.65rem", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
+                    <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
                   </div>
                 </div>
 

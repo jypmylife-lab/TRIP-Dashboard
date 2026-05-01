@@ -187,19 +187,19 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
 
   // 필터 버튼 공통 스타일
   const filterTypeBtn = (active: boolean) => ({
-    padding: "4px 12px", borderRadius: 99, fontSize: "0.75rem", fontWeight: 700,
-    border: "1px solid", cursor: "pointer", transition: "all 0.15s",
-    background: active ? "var(--accent)" : "transparent",
-    color: active ? "#fff" : "var(--text-secondary)",
-    borderColor: active ? "var(--accent)" : "rgba(0,0,0,0.12)"
+    padding: "6px 16px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
+    border: "2px solid", cursor: "pointer", transition: "all 0.15s",
+    background: active ? "var(--mint)" : "transparent",
+    color: active ? "#1a1a1a" : "var(--text-secondary)",
+    borderColor: active ? "var(--mint)" : "rgba(0,0,0,0.12)"
   } as React.CSSProperties);
 
   const filterPersonBtn = (active: boolean, dark = false) => ({
-    padding: "4px 10px", borderRadius: 99, fontSize: "0.75rem", fontWeight: 600,
-    border: "1px solid", cursor: "pointer", transition: "all 0.15s",
-    background: active ? (dark ? "#0f172a" : "var(--accent)") : "transparent",
-    color: active ? "#fff" : "var(--text-secondary)",
-    borderColor: active ? (dark ? "#0f172a" : "var(--accent)") : "rgba(0,0,0,0.12)"
+    padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800,
+    border: "2px solid", cursor: "pointer", transition: "all 0.15s",
+    background: active ? (dark ? "#1a1a1a" : "var(--coral)") : "transparent",
+    color: active ? (dark ? "#fff" : "#1a1a1a") : "var(--text-secondary)",
+    borderColor: active ? (dark ? "#1a1a1a" : "var(--coral)") : "rgba(0,0,0,0.12)"
   } as React.CSSProperties);
 
   return (
@@ -207,7 +207,7 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
       {/* 헤더 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>💸 지출 및 정산</h2>
+          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>💰 지출 및 정산</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>기준 통화: {trip.currency || "USD"}</p>
         </div>
         <button className="btn-primary" onClick={() => setShowForm(true)}>+ 지출 추가</button>
@@ -215,9 +215,9 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
 
       {/* 최종 정산 요약 */}
       {expenses && expenses.length > 0 && settlements.length > 0 && (
-        <div className="glass" style={{ padding: 20, border: "1px solid rgba(99,102,241,0.2)", background: "rgba(99,102,241,0.04)" }}>
-          <h3 style={{ fontWeight: 700, fontSize: "1rem", marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>
-            <span>📊</span> 최종 정산 결과
+        <div className="glass" style={{ padding: 24, border: "2px solid rgba(0,0,0,0.08)", background: "var(--lavender)", borderRadius: 20 }}>
+          <h3 style={{ fontWeight: 800, fontSize: "1.05rem", marginBottom: 14, display: "flex", gap: 8, alignItems: "center", color: "#1a1a1a" }}>
+            <span>💸</span> 최종 정산 결과
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {settlements.map((s, i) => (
@@ -238,7 +238,7 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
 
       {/* 필터 UI */}
       {expenses && expenses.length > 0 && (
-        <div className="glass" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="glass" style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12, borderRadius: 20, border: "2px solid rgba(0,0,0,0.08)" }}>
           {/* 1행: 전체 | 💳 결제자 | 👥 참여자 */}
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <button onClick={() => setFilterPerson("")}
@@ -307,9 +307,8 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
               return (
                 <div key={e._id} className="glass glass-hover" style={{
                   background: "#ffffff",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)",
+                  borderRadius: 20,
+                  border: "2px solid rgba(0,0,0,0.08)",
                   cursor: "pointer",
                   overflow: "hidden"
                 }}

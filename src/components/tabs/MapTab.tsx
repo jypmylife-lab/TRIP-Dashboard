@@ -380,12 +380,12 @@ export default function MapTab({ trip }: { trip: any }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 700, fontSize: "1.1rem" }}>🗺️ 지도</h2>
+        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
         <button className="btn-primary" onClick={() => setShowForm(true)}>+ 장소 추가</button>
       </div>
 
       {/* 지도 표시 */}
-      <div className="glass" style={{ borderRadius: 16, overflow: "hidden", height: 380, position: "relative" }}>
+      <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: 380, position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
         {apiKey ? (
           <>
             <style>{`
@@ -441,13 +441,24 @@ export default function MapTab({ trip }: { trip: any }) {
 
       {/* 카테고리 필터 UI - 항상 표시 */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-        <button className={`badge ${selectedCat === "all" ? "badge-purple" : ""}`} onClick={() => setSelectedCat("all")} 
-          style={{ cursor: "pointer", background: selectedCat !== "all" ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== "all" ? "var(--text-secondary)" : undefined }}>
+        <button onClick={() => setSelectedCat("all")} 
+          style={{ 
+            padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
+            background: selectedCat === "all" ? "var(--yellow)" : "transparent", 
+            color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
+            borderColor: selectedCat === "all" ? "var(--yellow)" : "rgba(0,0,0,0.1)",
+          }}>
           모두
         </button>
         {CATEGORIES.map(c => (
-          <button key={c.id} className={`badge ${selectedCat === c.id ? "badge-purple" : ""}`} onClick={() => setSelectedCat(c.id)} 
-            style={{ cursor: "pointer", background: selectedCat !== c.id ? "rgba(0,0,0,0.05)" : undefined, color: selectedCat !== c.id ? "var(--text-secondary)" : undefined, display: "flex", alignItems: "center", gap: 3 }}>
+          <button key={c.id} onClick={() => setSelectedCat(c.id)} 
+            style={{ 
+              padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 800, cursor: "pointer", border: "2px solid", transition: "all 0.15s",
+              background: selectedCat === c.id ? "var(--mint)" : "transparent", 
+              color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
+              borderColor: selectedCat === c.id ? "var(--mint)" : "rgba(0,0,0,0.1)",
+              display: "flex", alignItems: "center", gap: 4 
+            }}>
             {c.emoji} {c.label}
           </button>
         ))}
