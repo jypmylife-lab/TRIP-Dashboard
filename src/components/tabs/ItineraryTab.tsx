@@ -678,9 +678,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                   <ItineraryPhotos item={item} nickname={nickname} />
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
                       </div>
                     )}
 
