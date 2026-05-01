@@ -539,9 +539,21 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     </span>
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
-                  <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "4px 8px", borderRadius: 8 }}>
-                    <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
-                    <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button onClick={(e) => { e.stopPropagation(); setReorderDayId(reorderDayId === day._id ? null : day._id); }}
+                      style={{ 
+                        padding: "5px 12px", borderRadius: 10, fontSize: "0.72rem", fontWeight: 800, 
+                        background: reorderDayId === day._id ? "var(--accent)" : "rgba(0,0,0,0.06)", 
+                        color: reorderDayId === day._id ? "#fff" : "var(--text-secondary)", 
+                        border: "none", cursor: "pointer", transition: "all 0.15s",
+                        boxShadow: reorderDayId === day._id ? "0 2px 6px rgba(99,102,241,0.3)" : "none"
+                      }}>
+                      {reorderDayId === day._id ? "완료" : "순서 변경"}
+                    </button>
+                    <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
+                      <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
+                    </div>
                   </div>
                 </div>
 
