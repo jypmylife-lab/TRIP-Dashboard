@@ -171,28 +171,28 @@ export default function InfoTab({ trip }: { trip: any }) {
 
       {weatherData && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="glass" style={{ padding: 28, background: "linear-gradient(135deg, #1a1a1a 0%, #333333 100%)", color: "#fff", border: "none", borderRadius: 24, position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+          <div className="glass" style={{ padding: 28, background: "var(--mint)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 24, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative" }}>
               <div>
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.84rem", marginBottom: 6, fontWeight: 600 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
+                <p style={{ color: "rgba(0,0,0,0.6)", fontSize: "0.84rem", marginBottom: 6, fontWeight: 700 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <span style={{ fontSize: 64 }}>{weatherEmoji(weatherData.current.icon)}</span>
                   <div>
                     <div style={{ fontSize: "3.2rem", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em" }}>{weatherData.current.temp}°</div>
-                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.92rem", marginTop: 4, textTransform: "capitalize", fontWeight: 600 }}>{weatherData.current.description}</div>
+                    <div style={{ color: "rgba(0,0,0,0.7)", fontSize: "0.92rem", marginTop: 4, textTransform: "capitalize", fontWeight: 700 }}>{weatherData.current.description}</div>
                   </div>
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C`, bg: "var(--lime)" },
-                  { label: "습도", value: `${weatherData.current.humidity}%`, bg: "var(--lime)" },
-                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s`, bg: "var(--lime)" },
+                  { label: "체감온도", value: `${weatherData.current.feelsLike}°C` },
+                  { label: "습도", value: `${weatherData.current.humidity}%` },
+                  { label: "풍속", value: `${weatherData.current.windSpeed} m/s` },
                 ].map((item, idx) => (
-                  <div key={item.label} style={{ background: item.bg, borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a", opacity: 1 - (idx * 0.15) }}>
-                    <div style={{ fontSize: "0.68rem", fontWeight: 700, marginBottom: 1, opacity: 0.7 }}>{item.label}</div>
-                    <div style={{ fontWeight: 800, fontSize: "0.95rem" }}>{item.value}</div>
+                  <div key={item.label} style={{ background: "rgba(255,255,255,0.5)", borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a" }}>
+                    <div style={{ fontSize: "0.68rem", fontWeight: 800, marginBottom: 1, opacity: 0.8 }}>{item.label}</div>
+                    <div style={{ fontWeight: 900, fontSize: "0.95rem" }}>{item.value}</div>
                   </div>
                 ))}
               </div>
