@@ -48,13 +48,8 @@ export default function TripPage() {
     const name = inputNickname.trim();
     
     try {
-      if (selectedOldNickname && selectedOldNickname !== name) {
-        // 기존 닉네임을 선택하고 다른 이름으로 수정한 경우 -> 닉네임 및 관련 데이터 일괄 업데이트
-        await updateNickname({ tripId: trip._id, oldNickname: selectedOldNickname, newNickname: name });
-      } else {
-        // 새 닉네임이거나 선택한 닉네임 그대로 입장한 경우
-        await addParticipant({ tripId: trip._id, nickname: name });
-      }
+      // 닉네임 수정 기능 제거: 무조건 참여자로 추가 (내부적으로 이미 존재하면 해당 레코드 사용)
+      await addParticipant({ tripId: trip._id, nickname: name });
       
       localStorage.setItem(`nickname_${shareId}`, name);
       setNickname(name);
@@ -201,10 +196,13 @@ export default function TripPage() {
               </span>
               <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
                 onClick={() => { 
-                  localStorage.removeItem(`nickname_${shareId}`); 
-                  setSelectedOldNickname(null);
-                  setInputNickname("");
-                  setNickname(""); 
+                  if (confirm("닉네임을 변경(초기화)하시겠습니까?")) {
+                    localStorage.removeItem(`nickname_${shareId}`); 
+                    setSelectedOldNickname(null);
+                    setInputNickname("");
+                    setNickname(""); 
+                    window.location.reload();
+                  }
                 }}>
                 변경
               </button>

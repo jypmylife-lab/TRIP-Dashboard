@@ -376,19 +376,25 @@ export default function MapTab({ trip }: { trip: any }) {
               <button
                 onClick={findMyLocation}
                 style={{
-                  position: "absolute", bottom: isMapExpanded ? 30 : 16, right: 12,
+                  position: "absolute", bottom: 12, right: 12,
                   width: 44, height: 44, borderRadius: "50%",
                   background: "#ffffff",
                   border: "1px solid rgba(0,0,0,0.1)",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  boxShadow: "0 2px 12px rgba(66,133,244,0.3)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", zIndex: 10,
-                  fontSize: 20, color: "#4285F4",
-                  transition: "bottom 0.4s ease"
+                  cursor: "pointer", zIndex: 10, color: "#4285F4",
+                  transition: "all 0.2s"
                 }}
                 title="현재 위치로 이동"
               >
-                ⌖
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="8" strokeOpacity="0.4" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+                  <line x1="12" y1="2" x2="12" y2="6" />
+                  <line x1="12" y1="18" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="6" y2="12" />
+                  <line x1="18" y1="12" x2="22" y2="12" />
+                </svg>
               </button>
             </>
           ) : (

@@ -104,6 +104,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const polylineRefs = useRef<any[]>([]);
   const myLocationMarkerRef = useRef<any>(null);
 
+  const [reorderDayId, setReorderDayId] = useState<string | null>(null);
+
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
 
@@ -491,12 +493,21 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                 position: "absolute", bottom: 12, right: 12,
                 width: 36, height: 36, borderRadius: "50%",
                 background: "#ffffff", border: "1px solid rgba(0,0,0,0.1)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                boxShadow: "0 2px 10px rgba(66,133,244,0.25)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer", zIndex: 10, fontSize: 24, color: "#1a1a1a"
+                cursor: "pointer", zIndex: 10, color: "#4285F4"
               }}
               title="내 위치로 이동"
-            >⌖</button>
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="8" strokeOpacity="0.4" />
+                <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+                <line x1="12" y1="2" x2="12" y2="6" />
+                <line x1="12" y1="18" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="6" y2="12" />
+                <line x1="18" y1="12" x2="22" y2="12" />
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -610,11 +621,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     {/* 액션 버튼 */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 및 순서 변경 */}
-                                      {reorderItem === item._id ? (
+                                      {(reorderItem === item._id || reorderDayId === day._id) ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                                           <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
                                           <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>
+                                          {reorderItem === item._id && <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
                                         </div>
                                       ) : (
                                         <div
