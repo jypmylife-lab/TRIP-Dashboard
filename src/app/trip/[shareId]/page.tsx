@@ -196,13 +196,11 @@ export default function TripPage() {
               </span>
               <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
                 onClick={() => { 
-                  if (confirm("닉네임을 변경(초기화)하시겠습니까?")) {
-                    localStorage.removeItem(`nickname_${shareId}`); 
-                    setSelectedOldNickname(null);
-                    setInputNickname("");
-                    setNickname(""); 
-                    window.location.reload();
-                  }
+                  localStorage.removeItem(`nickname_${shareId}`); 
+                  setSelectedOldNickname(null);
+                  setInputNickname("");
+                  setNickname(""); 
+                  window.location.reload();
                 }}>
                 변경
               </button>

@@ -103,6 +103,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const markersRef = useRef<any[]>([]);
   const polylineRefs = useRef<any[]>([]);
   const myLocationMarkerRef = useRef<any>(null);
+  const lastPosRef = useRef<{lat: number, lng: number} | null>(null);
 
   const [reorderDayId, setReorderDayId] = useState<string | null>(null);
 
@@ -201,6 +202,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     if (!mapInstance || !navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition((pos) => {
       const { latitude: lat, longitude: lng } = pos.coords;
+      lastPosRef.current = { lat, lng };
       const google = (window as any).google;
       if (!google?.maps) return;
 
@@ -482,9 +484,14 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           {mapInstance && (
             <button
               onClick={() => {
-                if (navigator.geolocation) {
+                if (lastPosRef.current) {
+                  mapInstance.setCenter(lastPosRef.current);
+                  mapInstance.setZoom(15);
+                } else if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition((pos) => {
-                    mapInstance.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    lastPosRef.current = p;
+                    mapInstance.setCenter(p);
                     mapInstance.setZoom(15);
                   });
                 }
@@ -621,11 +628,11 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                     {/* 액션 버튼 */}
                                     <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 8, alignItems: "center" }}>
                                       {/* 드래그 및 순서 변경 */}
-                                      {(reorderItem === item._id || reorderDayId === day._id) ? (
+                                      {(reorderDayId === day._id || reorderItem === item._id) ? (
                                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", background: "#f1f5f9", padding: "6px 4px", borderRadius: 12, border: "1px solid #e2e8f0" }}>
                                           <button onClick={() => moveItemUp(item._id, day._id)} disabled={idx === 0} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === 0 ? "default" : "pointer", opacity: idx === 0 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↑</button>
                                           <button onClick={() => moveItemDown(item._id, day._id)} disabled={idx === dayItems.length - 1} style={{ width: 30, height: 30, border: "1px solid #cbd5e1", background: "white", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: idx === dayItems.length - 1 ? "default" : "pointer", opacity: idx === dayItems.length - 1 ? 0.3 : 1, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>↓</button>
-                                          {reorderItem === item._id && <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
+                                          {reorderItem === item._id && !reorderDayId && <button onClick={() => setReorderItem(null)} style={{ border: "none", background: "none", fontSize: 11, cursor: "pointer", color: "var(--text-muted)", marginTop: 2 }}>닫기</button>}
                                         </div>
                                       ) : (
                                         <div
