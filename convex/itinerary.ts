@@ -166,13 +166,20 @@ export const swapItems = mutation({
     itemBId: v.id("itineraryItems"),
   },
   handler: async (ctx, args) => {
-    const itemA = await ctx.db.get(args.itemAId);
-    const itemB = await ctx.db.get(args.itemBId);
-    if (!itemA || !itemB) return;
-    
-    const tempIndex = itemA.orderIndex;
-    await ctx.db.patch(args.itemAId, { orderIndex: itemB.orderIndex });
-    await ctx.db.patch(args.itemBId, { orderIndex: tempIndex });
+    try {
+      const itemA = await ctx.db.get(args.itemAId);
+      const itemB = await ctx.db.get(args.itemBId);
+      if (!itemA || !itemB) return;
+      
+      const indexA = typeof itemA.orderIndex === "number" ? itemA.orderIndex : 0;
+      const indexB = typeof itemB.orderIndex === "number" ? itemB.orderIndex : 0;
+      
+      await ctx.db.patch(args.itemAId, { orderIndex: indexB });
+      await ctx.db.patch(args.itemBId, { orderIndex: indexA });
+    } catch (e) {
+      console.error("Swap items failed", e);
+      throw new Error("순서 변경 중 서버 오류가 발생했습니다.");
+    }
   },
 });
 
