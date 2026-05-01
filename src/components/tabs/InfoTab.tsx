@@ -171,7 +171,7 @@ export default function InfoTab({ trip }: { trip: any }) {
 
       {weatherData && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="glass" style={{ padding: 28, background: "var(--mint)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 24, position: "relative", overflow: "hidden" }}>
+          <div className="glass" style={{ padding: 28, background: "var(--lime)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 24, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative" }}>
               <div>

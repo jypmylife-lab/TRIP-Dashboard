@@ -86,6 +86,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [editTimeVal, setEditTimeVal] = useState("");
   const [editingMemo, setEditingMemo] = useState<string | null>(null);
   const [editMemoVal, setEditMemoVal] = useState("");
+  const [editPlaceModal, setEditPlaceModal] = useState<any | null>(null);
   const [editingPlace, setEditingPlace] = useState<string | null>(null);
   const [editPlaceForm, setEditPlaceForm] = useState({ name: "", category: "attraction" });
   const [saving, setSaving] = useState(false);
@@ -131,7 +132,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       }
 
       // 2. 모달 내 장소 검색 자동완성
-      if (showPlaceModal && placeTab === "search" && searchInputRef.current) {
+      if ((showPlaceModal && placeTab === "search" || editPlaceModal) && searchInputRef.current) {
         if (google.maps.places) {
           const ac = new google.maps.places.Autocomplete(searchInputRef.current, {
             fields: ["name", "formatted_address", "geometry"]
@@ -160,7 +161,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       script.onload = initMapAndAutocomplete;
       document.head.appendChild(script);
     }
-  }, [showPlaceModal, placeTab, mapInstance]);
+  }, [showPlaceModal, placeTab, editPlaceModal, mapInstance]);
 
   // 지도 마커 및 경로 렌더링
   useEffect(() => {
@@ -303,12 +304,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setEditingTime(null);
   }
 
-  async function handleSavePlace(itemId: string) {
-    if (!editPlaceForm.name.trim()) return;
-    await updateItem({ itemId: itemId as any, placeName: editPlaceForm.name.trim(), placeCategory: editPlaceForm.category });
-    setEditingPlace(null);
-  }
-
   async function handleSaveMemo(itemId: string) {
     await updateItem({ itemId: itemId as any, memo: editMemoVal || undefined });
     setEditingMemo(null);
@@ -416,20 +411,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
                                       {item.type === "place" ? (
                                         <>
-                                          {editingPlace === item._id ? (
-                                            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexDirection: "column" }}>
-                                              <input className="input" value={editPlaceForm.name} onChange={e => setEditPlaceForm({...editPlaceForm, name: e.target.value})} style={{ fontSize: "0.9rem", padding: "4px 8px" }} autoFocus onKeyDown={e => e.key === "Enter" && handleSavePlace(item._id)} />
-                                              <div style={{ display: "flex", gap: 4 }}>
-                                                <button onClick={() => handleSavePlace(item._id)} style={{ padding: "4px 10px", fontSize: "0.75rem", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>저장</button>
-                                                <button onClick={() => setEditingPlace(null)} style={{ padding: "4px 10px", fontSize: "0.75rem", background: "transparent", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 6, cursor: "pointer" }}>취소</button>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => { setEditingPlace(item._id); setEditPlaceForm({ name: item.placeName || "", category: item.placeCategory || "attraction" }); }} title="클릭하여 장소 이름 수정">
-                                              <span style={{ fontSize: 16 }}>{cat?.emoji || "📌"}</span>
-                                              <span style={{ fontWeight: 700, fontSize: "0.92rem", textDecoration: "underline", textDecorationColor: "rgba(0,0,0,0.15)", textUnderlineOffset: 3 }}>{item.placeName}</span>
-                                            </div>
-                                          )}
+                                          <div style={{ display: "flex", alignItems: "center", gap: 6, cursor: item.placeLat ? "pointer" : "default" }} onClick={() => { if(item.placeLat && item.placeLng && mapInstance) { mapInstance.setCenter({lat: item.placeLat, lng: item.placeLng}); mapInstance.setZoom(17); } }}>
+                                            <span style={{ fontSize: 16 }}>{cat?.emoji || "📌"}</span>
+                                            <span style={{ fontWeight: 700, fontSize: "0.92rem", textDecoration: item.placeLat ? "underline" : "none", textDecorationColor: "rgba(0,0,0,0.15)", textUnderlineOffset: 3 }}>{item.placeName}</span>
+                                          </div>
                                           <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                                             <span className="badge badge-purple" style={{ fontSize: "0.62rem" }}>{cat?.label || "기타"}</span>
                                             {item.placeAddress && <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>· {item.placeAddress}</span>}
@@ -464,6 +449,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                         style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 6, cursor: idx === dayItems.length - 1 ? "default" : "pointer", fontSize: 16, opacity: idx === dayItems.length - 1 ? 0.25 : 0.7, padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>▼</button>
                                       <button onClick={() => removeItem({ itemId: item._id })}
                                         style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 14, color: "var(--danger)", padding: "4px 8px", lineHeight: 1, transition: "all 0.15s" }}>✕</button>
+                                      {item.type === "place" && (
+                                        <button onClick={() => {
+                                          setEditPlaceModal(item);
+                                          setPlaceForm({
+                                            name: item.placeName || "", category: item.placeCategory || "attraction",
+                                            address: item.placeAddress || "", time: item.time || "",
+                                            lat: item.placeLat, lng: item.placeLng
+                                          });
+                                        }} style={{ background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--text-secondary)", padding: "4px 6px", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700 }}>수정</button>
+                                      )}
                                     </div>
                                   </div>
 
@@ -561,6 +556,57 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 장소 수정 모달 */}
+      {editPlaceModal && (
+        <div className="modal-overlay" onClick={() => setEditPlaceModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 16 }}>📍 장소 수정</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div><label>장소 이름 검색 (구글맵 자동완성) *</label><input ref={searchInputRef} className="input" placeholder="예: 도톤보리" value={placeForm.name} onChange={e => setPlaceForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div><label>주소 (선택)</label><input className="input" placeholder="주소 입력" value={placeForm.address} onChange={e => setPlaceForm(f => ({ ...f, address: e.target.value }))} /></div>
+              <div><label>시간 (선택)</label><TimePicker value={placeForm.time} onChange={time => setPlaceForm(f => ({ ...f, time }))} /></div>
+              <div>
+                <label>카테고리</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {CATEGORIES.map(c => (
+                    <button key={c.id} type="button" onClick={() => setPlaceForm(f => ({ ...f, category: c.id }))}
+                      style={{ padding: "5px 12px", borderRadius: 20, border: `1px solid ${placeForm.category === c.id ? "var(--accent)" : "rgba(0,0,0,0.08)"}`, background: placeForm.category === c.id ? "var(--accent-dim)" : "transparent", color: placeForm.category === c.id ? "var(--accent)" : "var(--text-secondary)", fontSize: "0.78rem", cursor: "pointer" }}>
+                      {c.emoji} {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditPlaceModal(null)}>취소</button>
+                <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={async () => {
+                   if (!placeForm.name.trim()) return;
+                   setSaving(true);
+                   let lat = placeForm.lat;
+                   let lng = placeForm.lng;
+                   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+                   if (apiKey && placeForm.name && (lat === undefined || lng === undefined)) {
+                     try {
+                       const q = encodeURIComponent(`${placeForm.name} ${placeForm.address || trip.destination}`);
+                       const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
+                       const data = await res.json();
+                       if (data.results?.[0]) {
+                         lat = data.results[0].geometry.location.lat;
+                         lng = data.results[0].geometry.location.lng;
+                       }
+                     } catch (e) { /* ignore */ }
+                   }
+                   await updateItem({ itemId: editPlaceModal._id, placeName: placeForm.name, placeCategory: placeForm.category, placeAddress: placeForm.address || undefined, placeLat: lat, placeLng: lng, time: placeForm.time || undefined });
+                   setEditPlaceModal(null);
+                   setSaving(false);
+                }} disabled={saving || !placeForm.name.trim()}>
+                  {saving ? <span className="spinner" /> : "저장"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
