@@ -508,12 +508,12 @@ export default function MapTab({ trip }: { trip: any }) {
               return (
                 <div key={p._id} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
-                  <div style={{ background: "var(--lavender)", padding: "10px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ background: "var(--mint)", padding: "10px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ color: "#1a1a1a", fontSize: "0.75rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
                     <div style={{ display: "flex", gap: 4 }}>
-                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "#1a1a1a", background: "rgba(0,0,0,0.06)", border: "none", borderRadius: 99, fontWeight: 700 }}
+                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                         onClick={(e) => { e.stopPropagation(); handleEdit(p); }}>수정</button>
-                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "var(--danger)", background: "rgba(255,0,0,0.06)", border: "none", borderRadius: 99, fontWeight: 700 }}
+                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                         onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
                     </div>
                   </div>
