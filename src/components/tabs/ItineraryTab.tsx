@@ -77,7 +77,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const updateDay = useMutation(api.itinerary.updateDay);
   const addItem = useMutation(api.itinerary.addItem);
   const updateItem = useMutation(api.itinerary.updateItem);
-  const swapItems = useMutation(api.itinerary.atomicSwapItems);
   const removeItem = useMutation(api.itinerary.removeItem);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
