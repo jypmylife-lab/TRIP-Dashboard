@@ -98,6 +98,7 @@ export default function MapTab({ trip }: { trip: any }) {
         setMapInstance(map);
         infoWindowRef.current = new google.maps.InfoWindow();
       }
+    }
 
     if (existingScript) {
       if ((window as any).google) init();
