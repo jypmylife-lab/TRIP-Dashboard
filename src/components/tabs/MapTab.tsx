@@ -34,23 +34,23 @@ export default function MapTab({ trip }: { trip: any }) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const formNameInputRef = useRef<HTMLInputElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
-  const [autocomplete, setAutocomplete] = useState<any>(null);
-  const [formAutocomplete, setFormAutocomplete] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<any>(null);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
 
-  // 모달 입력창 구글 자동완성
+  // 모달 입력창 구글 자동완성 (매번 모달이 열릴 때마다 새롭게 바인딩하여 오류 방지)
   useEffect(() => {
-    if (showForm && formNameInputRef.current && !formAutocomplete && (window as any).google?.maps?.places) {
+    if (showForm && formNameInputRef.current && (window as any).google?.maps?.places) {
       const google = (window as any).google;
       const ac = new google.maps.places.Autocomplete(formNameInputRef.current, {
         fields: ["name", "formatted_address", "geometry", "url"]
       });
+      
+      // 지도가 있으면 검색 범위를 지도로 제한
       if (mapInstance) ac.bindTo("bounds", mapInstance);
       
-      ac.addListener("place_changed", () => {
+      const listener = ac.addListener("place_changed", () => {
         const place = ac.getPlace();
         if (!place.geometry || !place.geometry.location) return;
         
@@ -62,9 +62,13 @@ export default function MapTab({ trip }: { trip: any }) {
         }));
         setTempLatLng({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
       });
-      setFormAutocomplete(ac);
+
+      return () => {
+        // cleanup: 리스너 제거
+        google.maps.event.clearInstanceListeners(ac);
+      };
     }
-  }, [showForm, formAutocomplete, mapInstance]);
+  }, [showForm, mapInstance]);
 
   // 리스너 등록 (정보창 닫기)
   useEffect(() => {
@@ -95,11 +99,6 @@ export default function MapTab({ trip }: { trip: any }) {
         infoWindowRef.current = new google.maps.InfoWindow();
       }
 
-      if (searchInputRef.current && !autocomplete && (window as any).google?.maps?.places) {
-        // 검색창이 제거되었으므로 autocomplete 바인딩 로직을 제거 또는 비활성화합니다.
-      }
-    }
-
     if (existingScript) {
       if ((window as any).google) init();
       else existingScript.addEventListener("load", init);
@@ -111,7 +110,7 @@ export default function MapTab({ trip }: { trip: any }) {
       script.onload = init;
       document.head.appendChild(script);
     }
-  }, [apiKey, mapInstance, autocomplete]);
+  }, [apiKey, mapInstance]);
 
   // 장소/숙소 목록 바뀔 때마다 마커 새로 그리기
   useEffect(() => {
