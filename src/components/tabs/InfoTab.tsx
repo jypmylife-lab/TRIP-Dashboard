@@ -41,6 +41,8 @@ const CURRENCY_NAMES: Record<string, string> = {
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥", THB: "฿", KRW: "₩",
+  SGD: "S$", AUD: "A$", HKD: "HK$", TWD: "NT$", VND: "₫", PHP: "₱",
+  MYR: "RM", IDR: "Rp", AED: "AED",
 };
 
 interface WeatherData {

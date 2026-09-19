@@ -10,7 +10,10 @@ const CURRENCIES = [
   { code: "EUR", label: "유로 (€)" }, { code: "THB", label: "태국 바트 (฿)" },
   { code: "SGD", label: "싱가포르 달러 (S$)" }, { code: "CNY", label: "중국 위안 (¥)" },
   { code: "GBP", label: "영국 파운드 (£)" }, { code: "AUD", label: "호주 달러 (A$)" },
-  { code: "HKD", label: "홍콩 달러 (HK$)" },
+  { code: "HKD", label: "홍콩 달러 (HK$)" }, { code: "TWD", label: "대만 달러 (NT$)" },
+  { code: "VND", label: "베트남 동 (₫)" }, { code: "MYR", label: "말레이시아 링깃 (RM)" },
+  { code: "PHP", label: "필리핀 페소 (₱)" }, { code: "IDR", label: "인도네시아 루피아 (Rp)" },
+  { code: "AED", label: "UAE 디르함 (AED)" },
 ];
 const EMOJIS = ["🗺️","🏝️","🏔️","🌸","🍜","🎌","🗼","🌏","🏖️","🎭","🌃","🚂"];
 
@@ -79,6 +82,16 @@ export default function AdminPage() {
   function handleCopyLink(shareId: string) {
     navigator.clipboard.writeText(`${window.location.origin}/trip/${shareId}`);
     alert("링크가 클립보드에 복사되었습니다!");
+  }
+
+  async function handleDelete(trip: any) {
+    if (!confirm("이 여행을 삭제할까요?")) return;
+    try {
+      await removeTrip({ tripId: trip._id });
+    } catch (err) {
+      console.error(err);
+      alert("삭제에 실패했습니다. 다시 시도해주세요.");
+    }
   }
   if (!isAuth) return null;
 
@@ -177,7 +190,7 @@ export default function AdminPage() {
                     🔗 링크 복사
                   </button>
                   <button className="btn-danger" style={{ flex: 1, minWidth: "60px", fontSize: "0.75rem", padding: "7px", justifyContent: "center" }}
-                    onClick={(e) => { e.stopPropagation(); if (confirm("이 여행을 삭제할까요?")) removeTrip({ tripId: trip._id }); }}>
+                    onClick={(e) => { e.stopPropagation(); handleDelete(trip); }}>
                     삭제
                   </button>
                 </div>
