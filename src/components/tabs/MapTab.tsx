@@ -358,7 +358,7 @@ export default function MapTab({ trip }: { trip: any }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
-        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem" }}>+ 장소 추가</button>
+        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
       </div>
 
       {/* 지도 표시 */}

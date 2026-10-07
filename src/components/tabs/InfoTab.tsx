@@ -154,8 +154,8 @@ export default function InfoTab({ trip }: { trip: any }) {
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input className="input" placeholder="도시명" value={city}
             onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchWeather(city)}
-            style={{ width: 88, padding: "7px 10px", fontSize: "0.8rem" }} />
-          <button className="btn-primary" onClick={() => fetchWeather(city)} disabled={weatherLoading} style={{ whiteSpace: "nowrap", padding: "7px 14px", fontSize: "0.78rem" }}>
+            style={{ width: 88, padding: "7px 10px", fontSize: "0.8rem", minHeight: "auto" }} />
+          <button className="btn-primary" onClick={() => fetchWeather(city)} disabled={weatherLoading} style={{ whiteSpace: "nowrap", padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>
             {weatherLoading ? <span className="spinner" /> : "날씨 조회"}
           </button>
         </div>
