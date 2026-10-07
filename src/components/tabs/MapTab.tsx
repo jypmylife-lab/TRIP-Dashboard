@@ -38,6 +38,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const infoWindowRef = useRef<any>(null);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   // 모달 입력창 구글 자동완성 (매번 모달이 열릴 때마다 새롭게 바인딩하여 오류 방지)
   useEffect(() => {
@@ -77,6 +78,22 @@ export default function MapTab({ trip }: { trip: any }) {
     };
     window.addEventListener('closeGMapInfoWindow', handleClose);
     return () => window.removeEventListener('closeGMapInfoWindow', handleClose);
+  }, []);
+
+  // 지도 핀의 정보창 클릭 시, 아래 목록의 해당 카드로 스크롤 + 하이라이트
+  useEffect(() => {
+    const handleViewDetail = (e: Event) => {
+      const id = (e as CustomEvent).detail as string;
+      if (infoWindowRef.current) infoWindowRef.current.close();
+      const el = document.getElementById(`map-card-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightedId(id);
+        setTimeout(() => setHighlightedId(current => current === id ? null : current), 1800);
+      }
+    };
+    window.addEventListener('viewMapCardDetail', handleViewDetail);
+    return () => window.removeEventListener('viewMapCardDetail', handleViewDetail);
   }, []);
 
   // 구글 맵스 API 로드 및 초기화
@@ -129,7 +146,7 @@ export default function MapTab({ trip }: { trip: any }) {
     let hasPoints = false;
 
     // 마커 클릭 리스너 헬퍼
-    const addMarkerListener = (marker: any, content: string) => {
+    const addMarkerListener = (marker: any, content: string, id: string) => {
       marker.addListener("click", () => {
         if (infoWindowRef.current) {
           infoWindowRef.current.setContent(`
@@ -138,13 +155,16 @@ export default function MapTab({ trip }: { trip: any }) {
                 <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">
                   ${content}
                 </span>
-                <div 
+                <div
                   onclick="window.dispatchEvent(new CustomEvent('closeGMapInfoWindow'))"
                   style="background: #e2e8f0; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 14px; font-weight: bold;"
                 >✕</div>
               </div>
-              <div style="padding: 12px 14px; font-size: 0.75rem; color: #64748b; font-weight: 500;">
-                지도를 보려면 닫기 버튼을 클릭하세요
+              <div
+                onclick="window.dispatchEvent(new CustomEvent('viewMapCardDetail', { detail: '${id}' }))"
+                style="padding: 12px 14px; font-size: 0.78rem; color: #2563eb; font-weight: 700; cursor: pointer;"
+              >
+                👇 자세히 보기
               </div>
             </div>
           `);
@@ -163,7 +183,7 @@ export default function MapTab({ trip }: { trip: any }) {
           position: pos, map: mapInstance, title: a.name,
           icon: "https://maps.google.com/mapfiles/ms/icons/purple-dot.png"
         });
-        addMarkerListener(marker, `🏨 ${a.name}`);
+        addMarkerListener(marker, `🏨 ${a.name}`, a._id);
         markersRef.current.push(marker);
         bounds.extend(pos);
         hasPoints = true;
@@ -199,7 +219,7 @@ export default function MapTab({ trip }: { trip: any }) {
             position: pos, map: mapInstance, title: p.name,
             icon: `https://maps.google.com/mapfiles/ms/icons/${color}.png`
           });
-          addMarkerListener(marker, `${emoji} ${p.name}`);
+          addMarkerListener(marker, `${emoji} ${p.name}`, p._id);
           markersRef.current.push(marker);
           bounds.extend(pos);
           hasPoints = true;
@@ -453,13 +473,15 @@ export default function MapTab({ trip }: { trip: any }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {/* 숙소 목록 */}
             {selectedCat === "all" || selectedCat === "accommodation" ? accommodations.map(a => (
-              <div key={a._id} className="glass glass-hover" style={{ 
-                cursor: "pointer", 
+              <div key={a._id} id={`map-card-${a._id}`} className="glass glass-hover" style={{
+                cursor: "pointer",
                 background: "#ffffff",
-                border: "2px solid rgba(0,0,0,0.08)",
+                border: highlightedId === a._id ? "2px solid var(--sky)" : "2px solid rgba(0,0,0,0.08)",
                 borderRadius: 20,
                 overflow: "hidden",
-                display: "flex", flexDirection: "column"
+                display: "flex", flexDirection: "column",
+                boxShadow: highlightedId === a._id ? "0 0 0 4px rgba(144,202,249,0.4)" : undefined,
+                transition: "box-shadow 0.3s, border-color 0.3s"
               }}
               onClick={() => focusPlace(a.lat, a.lng)}>
                 <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -485,7 +507,7 @@ export default function MapTab({ trip }: { trip: any }) {
             {places.filter(p => selectedCat === "all" || p.category === selectedCat).map(p => {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
-                <div key={p._id} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
+                <div key={p._id} id={`map-card-${p._id}`} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: highlightedId === p._id ? "2px solid var(--sky)" : "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: highlightedId === p._id ? "0 0 0 4px rgba(144,202,249,0.4)" : undefined, transition: "box-shadow 0.3s, border-color 0.3s" }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
                   <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ color: "#1a1a1a", fontSize: "0.8rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
