@@ -81,8 +81,7 @@ export default function MapTab({ trip }: { trip: any }) {
 
   // 구글 맵스 API 로드 및 초기화
   useEffect(() => {
-    if (!apiKey) return;
-    const existingScript = document.getElementById("google-maps-script");
+    const scriptId = "google-maps-api";
     
     function init() {
       if (mapRef.current && !mapInstance && (window as any).google?.maps) {
@@ -100,16 +99,20 @@ export default function MapTab({ trip }: { trip: any }) {
       }
     }
 
-    if (existingScript) {
-      if ((window as any).google) init();
-      else existingScript.addEventListener("load", init);
+    if ((window as any).google?.maps) {
+      init();
     } else {
-      const script = document.createElement("script");
-      script.id = "google-maps-script";
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      script.async = true;
-      script.onload = init;
-      document.head.appendChild(script);
+      const existingScript = document.getElementById(scriptId);
+      if (existingScript) {
+        existingScript.addEventListener("load", init);
+      } else {
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = init;
+        document.head.appendChild(script);
+      }
     }
   }, [apiKey, mapInstance]);
 
@@ -158,7 +161,7 @@ export default function MapTab({ trip }: { trip: any }) {
         const pos = { lat: a.lat, lng: a.lng };
         const marker = new google.maps.Marker({
           position: pos, map: mapInstance, title: a.name,
-          icon: "http://maps.google.com/mapfiles/ms/icons/purple-dot.png"
+          icon: "https://maps.google.com/mapfiles/ms/icons/purple-dot.png"
         });
         addMarkerListener(marker, `🏨 ${a.name}`);
         markersRef.current.push(marker);
@@ -194,7 +197,7 @@ export default function MapTab({ trip }: { trip: any }) {
           
           const marker = new google.maps.Marker({
             position: pos, map: mapInstance, title: p.name,
-            icon: `http://maps.google.com/mapfiles/ms/icons/${color}.png`
+            icon: `https://maps.google.com/mapfiles/ms/icons/${color}.png`
           });
           addMarkerListener(marker, `${emoji} ${p.name}`);
           markersRef.current.push(marker);
@@ -355,7 +358,7 @@ export default function MapTab({ trip }: { trip: any }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>+ 장소 추가</button>
+        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem" }}>+ 장소 추가</button>
       </div>
 
       {/* 지도 표시 */}

@@ -76,7 +76,7 @@ export default function AccommodationsTab({ trip, nickname }: { trip: any; nickn
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🏨 숙소</h2>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>+ 숙소 추가</button>
+        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem" }}>+ 숙소 추가</button>
       </div>
 
       {items === undefined ? <div style={{ textAlign: "center", padding: 40 }}><span className="spinner" style={{ margin: "0 auto" }} /></div>

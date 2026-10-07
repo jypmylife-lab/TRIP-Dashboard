@@ -118,7 +118,7 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
       <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", gap: 10 }}>
           <input className="input" style={{ flex: 1 }} placeholder="예: 여권 챙기기, 환전하기..." value={text} onChange={e => setText(e.target.value)} />
-          <button className="btn-primary" type="submit" disabled={saving} style={{ whiteSpace: "nowrap" }}>
+          <button className="btn-primary" type="submit" disabled={saving} style={{ whiteSpace: "nowrap", padding: "7px 14px", fontSize: "0.78rem" }}>
             {saving ? <span className="spinner" /> : "추가"}
           </button>
         </div>

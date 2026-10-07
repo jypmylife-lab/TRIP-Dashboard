@@ -210,7 +210,7 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
           <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>💰 지출 및 정산</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>기준 통화: {trip.currency || "USD"}</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>+ 지출 추가</button>
+        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem" }}>+ 지출 추가</button>
       </div>
 
       {/* 최종 정산 요약 */}

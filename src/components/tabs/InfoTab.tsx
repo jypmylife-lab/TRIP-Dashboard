@@ -31,14 +31,6 @@ function findTimezone(destination: string): string | null {
   return null;
 }
 
-// 통화 표시명
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "미국 달러", EUR: "유로", JPY: "일본 엔", GBP: "영국 파운드",
-  CNY: "중국 위안", THB: "태국 바트", SGD: "싱가포르 달러", AUD: "호주 달러",
-  HKD: "홍콩 달러", TWD: "대만 달러", VND: "베트남 동", PHP: "필리핀 페소",
-  MYR: "말레이시아 링깃", IDR: "인도네시아 루피아", AED: "UAE 디르함",
-};
-
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$", EUR: "€", JPY: "¥", GBP: "£", CNY: "¥", THB: "฿", KRW: "₩",
   SGD: "S$", AUD: "A$", HKD: "HK$", TWD: "NT$", VND: "₫", PHP: "₱",
@@ -156,16 +148,17 @@ export default function InfoTab({ trip }: { trip: any }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <h2 style={{ fontWeight: 900, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>ℹ️ 여행 정보</h2>
-
-      {/* ═══ 날씨 정보 ═══ */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <input className="input" placeholder="도시명 입력 (영문 또는 한글)" value={city}
-          onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchWeather(city)}
-          style={{ flex: 1 }} />
-        <button className="btn-primary" onClick={() => fetchWeather(city)} disabled={weatherLoading} style={{ whiteSpace: "nowrap" }}>
-          {weatherLoading ? <span className="spinner" /> : "날씨 조회"}
-        </button>
+      {/* ═══ 타이틀 + 날씨 검색 (한 줄) ═══ */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <h2 style={{ fontWeight: 900, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>ℹ️ 여행 정보</h2>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input className="input" placeholder="도시명" value={city}
+            onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchWeather(city)}
+            style={{ width: 88, padding: "7px 10px", fontSize: "0.8rem" }} />
+          <button className="btn-primary" onClick={() => fetchWeather(city)} disabled={weatherLoading} style={{ whiteSpace: "nowrap", padding: "7px 14px", fontSize: "0.78rem" }}>
+            {weatherLoading ? <span className="spinner" /> : "날씨 조회"}
+          </button>
+        </div>
       </div>
 
       {weatherError && <div style={{ padding: "10px 14px", background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10, color: "var(--danger)", fontSize: "0.82rem" }}>{weatherError}</div>}
@@ -199,9 +192,6 @@ export default function InfoTab({ trip }: { trip: any }) {
             </div>
           </div>
 
-          <h3 style={{ fontWeight: 800, fontSize: "0.86rem", color: "var(--text-secondary)", letterSpacing: "-0.01em" }}>
-            여행 일정 날씨 예보 ({trip.startDate} ~ {trip.endDate})
-          </h3>
           {(() => {
             const valid = weatherData.forecast.filter(d => d.date >= trip.startDate && d.date <= trip.endDate);
             if (valid.length === 0) return (
@@ -227,65 +217,58 @@ export default function InfoTab({ trip }: { trip: any }) {
         </div>
       )}
 
-      {/* ═══ 시차 + 환율 정보 ═══ */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {(timezone || offsetSeconds !== undefined) && (
-          <div className="glass" style={{ padding: 14, background: "var(--lime)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 16 }}>
-            <div style={{ fontSize: "0.76rem", color: "rgba(0,0,0,0.5)", marginBottom: 8, fontWeight: 800 }}>🕐 시차 정보</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.5)", marginBottom: 2, fontWeight: 700 }}>🇰🇷 한국</div>
-                <div style={{ fontSize: "1.6rem", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{koreaTime}</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.5)", marginBottom: 2, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📍 {trip.destination}</div>
-                <div style={{ fontSize: "1.6rem", fontWeight: 900, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>{localTime}</div>
-              </div>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 8, fontSize: "0.76rem", color: "rgba(0,0,0,0.6)", background: "rgba(0,0,0,0.06)", padding: "5px 12px", borderRadius: 999, fontWeight: 700 }}>
-              {getTimeDiff()}
-            </div>
-          </div>
-        )}
-
-        {/* ═══ 환율 정보 ═══ */}
+      {/* ═══ 환율 + 시차 정보 (한 줄: 환율 좌측, 시차 우측) ═══ */}
+      <div style={{ display: "grid", gridTemplateColumns: (timezone || offsetSeconds !== undefined) && trip.currency && trip.currency !== "KRW" ? "1fr 1fr" : "1fr", gap: 10 }}>
+        {/* 환율 정보 */}
         {trip.currency && trip.currency !== "KRW" && (
-          <div className="glass" style={{ padding: 14, borderRadius: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: 800 }}>💱 환율 정보</div>
-              {isFallback && <span className="badge" style={{ fontSize: "0.6rem", background: "var(--lime)", color: "#1a1a1a" }}>참고용 환율</span>}
+          <div className="glass" style={{ padding: 12, borderRadius: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4, marginBottom: 6 }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 800 }}>💱 환율</div>
+              {isFallback && <span className="badge" style={{ fontSize: "0.56rem", background: "var(--lime)", color: "#1a1a1a", whiteSpace: "nowrap" }}>참고용</span>}
             </div>
             {rateLoading ? (
-              <div style={{ textAlign: "center", padding: 14 }}><span className="spinner" /></div>
+              <div style={{ textAlign: "center", padding: 10 }}><span className="spinner" /></div>
             ) : rate ? (
               <>
-                <div style={{ textAlign: "center", marginBottom: 10, padding: "10px", background: "var(--lime)", borderRadius: 12, color: "#1a1a1a" }}>
-                  <div style={{ fontSize: "0.74rem", color: "rgba(0,0,0,0.5)", marginBottom: 2, fontWeight: 700 }}>
-                    1 {trip.currency} ({CURRENCY_NAMES[trip.currency] || trip.currency})
-                  </div>
-                  <div style={{ fontSize: "1.6rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
+                <div style={{ textAlign: "center", marginBottom: 8, padding: "8px", background: "var(--lime)", borderRadius: 10, color: "#1a1a1a" }}>
+                  <div style={{ fontSize: "0.64rem", color: "rgba(0,0,0,0.5)", marginBottom: 1, fontWeight: 700 }}>1 {trip.currency}</div>
+                  <div style={{ fontSize: "1.2rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
                     {rate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} ₩
                   </div>
                 </div>
                 {/* 환율 계산기 */}
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <input className="input" type="number" placeholder={calcDirection === "toKRW" ? `${sym} 금액 입력` : "₩ 금액 입력"}
-                      value={calcAmount} onChange={e => setCalcAmount(e.target.value)} style={{ textAlign: "center", fontSize: "0.92rem", fontWeight: 600 }} />
-                  </div>
+                <input className="input" type="number" placeholder={calcDirection === "toKRW" ? `${sym} 금액` : "₩ 금액"}
+                  value={calcAmount} onChange={e => setCalcAmount(e.target.value)}
+                  style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, padding: "6px 8px", marginBottom: 6, width: "100%" }} />
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <button onClick={() => setCalcDirection(d => d === "toKRW" ? "fromKRW" : "toKRW")}
-                    style={{ width: 36, height: 36, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.1)", background: "var(--lime)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800 }}>⇄</button>
-                  <div style={{ flex: 1, textAlign: "center", padding: "8px", background: "rgba(0,0,0,0.03)", borderRadius: 10, fontSize: "0.92rem", fontWeight: 800, color: calcResult ? "var(--text-primary)" : "var(--text-muted)", minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.1)", background: "var(--lime)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800 }}>⇄</button>
+                  <div style={{ flex: 1, textAlign: "center", padding: "6px", background: "rgba(0,0,0,0.03)", borderRadius: 8, fontSize: "0.8rem", fontWeight: 800, color: calcResult ? "var(--text-primary)" : "var(--text-muted)" }}>
                     {calcResult || (calcDirection === "toKRW" ? "₩ ?" : `${sym} ?`)}
                   </div>
                 </div>
-                <div style={{ textAlign: "center", marginTop: 6, fontSize: "0.66rem", color: "var(--text-muted)" }}>
-                  {calcDirection === "toKRW" ? `${trip.currency} → KRW` : `KRW → ${trip.currency}`}
-                </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", padding: 12, color: "var(--text-muted)", fontSize: "0.8rem" }}>환율 정보를 불러올 수 없습니다.</div>
+              <div style={{ textAlign: "center", padding: 10, color: "var(--text-muted)", fontSize: "0.75rem" }}>불러올 수 없음</div>
             )}
+          </div>
+        )}
+
+        {/* 시차 정보 */}
+        {(timezone || offsetSeconds !== undefined) && (
+          <div className="glass" style={{ padding: 12, background: "var(--lime)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 16 }}>
+            <div style={{ fontSize: "0.72rem", color: "rgba(0,0,0,0.5)", marginBottom: 6, fontWeight: 800 }}>🕐 시차</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: "0.68rem", fontWeight: 700, whiteSpace: "nowrap" }}>🇰🇷 한국</span>
+              <span style={{ fontSize: "1rem", fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{koreaTime}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+              <span style={{ fontSize: "0.68rem", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 64 }}>📍 {trip.destination}</span>
+              <span style={{ fontSize: "1rem", fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>{localTime}</span>
+            </div>
+            <div style={{ textAlign: "center", fontSize: "0.64rem", color: "rgba(0,0,0,0.6)", background: "rgba(0,0,0,0.06)", padding: "3px 8px", borderRadius: 999, fontWeight: 700 }}>
+              {getTimeDiff()}
+            </div>
           </div>
         )}
       </div>
