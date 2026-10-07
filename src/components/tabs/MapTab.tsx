@@ -38,7 +38,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const infoWindowRef = useRef<any>(null);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
 
   // 모달 입력창 구글 자동완성 (매번 모달이 열릴 때마다 새롭게 바인딩하여 오류 방지)
   useEffect(() => {
@@ -80,17 +80,12 @@ export default function MapTab({ trip }: { trip: any }) {
     return () => window.removeEventListener('closeGMapInfoWindow', handleClose);
   }, []);
 
-  // 지도 핀의 정보창 클릭 시, 아래 목록의 해당 카드로 스크롤 + 하이라이트
+  // 지도 핀의 정보창에서 위치명 클릭 시, 아래 목록에 해당 장소만 필터링해서 보여줌
   useEffect(() => {
     const handleViewDetail = (e: Event) => {
       const id = (e as CustomEvent).detail as string;
       if (infoWindowRef.current) infoWindowRef.current.close();
-      const el = document.getElementById(`map-card-${id}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setHighlightedId(id);
-        setTimeout(() => setHighlightedId(current => current === id ? null : current), 1800);
-      }
+      setFocusedId(id);
     };
     window.addEventListener('viewMapCardDetail', handleViewDetail);
     return () => window.removeEventListener('viewMapCardDetail', handleViewDetail);
@@ -152,19 +147,16 @@ export default function MapTab({ trip }: { trip: any }) {
           infoWindowRef.current.setContent(`
             <div style="padding: 0; min-width: 180px; font-family: sans-serif; overflow: hidden; border-radius: 12px;">
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                <span style="font-weight: 700; font-size: 0.9rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">
+                <span
+                  onclick="window.dispatchEvent(new CustomEvent('viewMapCardDetail', { detail: '${id}' }))"
+                  style="font-weight: 700; font-size: 0.9rem; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; cursor: pointer;"
+                >
                   ${content}
                 </span>
                 <div
                   onclick="window.dispatchEvent(new CustomEvent('closeGMapInfoWindow'))"
-                  style="background: #e2e8f0; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 14px; font-weight: bold;"
+                  style="background: #e2e8f0; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 14px; font-weight: bold; flex-shrink: 0;"
                 >✕</div>
-              </div>
-              <div
-                onclick="window.dispatchEvent(new CustomEvent('viewMapCardDetail', { detail: '${id}' }))"
-                style="padding: 12px 14px; font-size: 0.78rem; color: #2563eb; font-weight: 700; cursor: pointer;"
-              >
-                👇 자세히 보기
               </div>
             </div>
           `);
@@ -438,10 +430,10 @@ export default function MapTab({ trip }: { trip: any }) {
 
       {/* 카테고리 필터 UI - 항상 표시 */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4, marginTop: 8 }}>
-        <button onClick={() => setSelectedCat("all")} 
-          style={{ 
+        <button onClick={() => { setSelectedCat("all"); setFocusedId(null); }}
+          style={{
             padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
-            background: selectedCat === "all" ? "var(--lavender)" : "#ffffff", 
+            background: selectedCat === "all" ? "var(--lavender)" : "#ffffff",
             color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
             borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.08)",
             boxShadow: selectedCat === "all" ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
@@ -449,19 +441,27 @@ export default function MapTab({ trip }: { trip: any }) {
           모두
         </button>
         {CATEGORIES.map(c => (
-          <button key={c.id} onClick={() => setSelectedCat(c.id)} 
-            style={{ 
+          <button key={c.id} onClick={() => { setSelectedCat(c.id); setFocusedId(null); }}
+            style={{
               padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
-              background: selectedCat === c.id ? "var(--lavender)" : "#ffffff", 
+              background: selectedCat === c.id ? "var(--lavender)" : "#ffffff",
               color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
               borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.08)",
               boxShadow: selectedCat === c.id ? "none" : "0 1px 2px rgba(0,0,0,0.05)",
-              display: "flex", alignItems: "center", gap: 4 
+              display: "flex", alignItems: "center", gap: 4
             }}>
             {c.emoji} {c.label}
           </button>
         ))}
       </div>
+
+      {/* 지도 핀에서 특정 장소를 선택했을 때 표시 */}
+      {focusedId && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 14px", background: "rgba(0,0,0,0.04)", borderRadius: 12, fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
+          <span>📍 선택한 장소만 보는 중</span>
+          <button onClick={() => setFocusedId(null)} style={{ background: "transparent", border: "none", color: "var(--accent)", fontWeight: 800, cursor: "pointer", fontSize: "0.8rem" }}>✕ 전체보기</button>
+        </div>
+      )}
 
       {/* 장소 목록 */}
       {places === undefined || accommodations === undefined ? <div style={{ textAlign: "center", padding: 40 }}><span className="spinner" style={{ margin: "0 auto" }} /></div>
@@ -472,16 +472,14 @@ export default function MapTab({ trip }: { trip: any }) {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {/* 숙소 목록 */}
-            {selectedCat === "all" || selectedCat === "accommodation" ? accommodations.map(a => (
+            {(focusedId ? accommodations.filter(a => a._id === focusedId) : (selectedCat === "all" || selectedCat === "accommodation") ? accommodations : []).map(a => (
               <div key={a._id} id={`map-card-${a._id}`} className="glass glass-hover" style={{
                 cursor: "pointer",
                 background: "#ffffff",
-                border: highlightedId === a._id ? "2px solid var(--sky)" : "2px solid rgba(0,0,0,0.08)",
+                border: "2px solid rgba(0,0,0,0.08)",
                 borderRadius: 20,
                 overflow: "hidden",
-                display: "flex", flexDirection: "column",
-                boxShadow: highlightedId === a._id ? "0 0 0 4px rgba(144,202,249,0.4)" : undefined,
-                transition: "box-shadow 0.3s, border-color 0.3s"
+                display: "flex", flexDirection: "column"
               }}
               onClick={() => focusPlace(a.lat, a.lng)}>
                 <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -501,13 +499,13 @@ export default function MapTab({ trip }: { trip: any }) {
                   ) : null}
                 </div>
               </div>
-            )) : null}
-            
+            ))}
+
             {/* 장소 목록 */}
-            {places.filter(p => selectedCat === "all" || p.category === selectedCat).map(p => {
+            {(focusedId ? places.filter(p => p._id === focusedId) : places.filter(p => selectedCat === "all" || p.category === selectedCat)).map(p => {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
-                <div key={p._id} id={`map-card-${p._id}`} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: highlightedId === p._id ? "2px solid var(--sky)" : "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: highlightedId === p._id ? "0 0 0 4px rgba(144,202,249,0.4)" : undefined, transition: "box-shadow 0.3s, border-color 0.3s" }}
+                <div key={p._id} id={`map-card-${p._id}`} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={() => focusPlace(p.lat, p.lng)}>
                   <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ color: "#1a1a1a", fontSize: "0.8rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
