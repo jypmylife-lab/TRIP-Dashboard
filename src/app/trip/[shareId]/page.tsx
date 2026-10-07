@@ -60,8 +60,8 @@ export default function TripPage() {
     }
   }
 
-  // 상단 타이틀 영역(태그라인~날짜) 표시 방식 테스트: 지도는 축소, 일정은 완전히 숨김
-  const titleBlockMode = activeTab === "itinerary" ? "hidden" : activeTab === "bookings" ? "full" : "compact";
+  // 예약 탭만 전체 타이틀, 나머지 탭은 모두 축소된 한 줄 타이틀
+  const titleBlockMode = activeTab === "bookings" ? "full" : "compact";
 
   const currentThemeColor = trip?.themeColor;
   const theme = THEME_COLORS.find(c => c.bg === currentThemeColor) || THEME_COLORS[0];
@@ -145,19 +145,6 @@ export default function TripPage() {
     );
   }
 
-  // 관리자 배지 + 홈 버튼 (여러 헤더 레이아웃에서 재사용)
-  const adminControls = (
-    <>
-      <span className="badge" style={{ background: "rgba(0,0,0,0.1)", color: theme.text, fontSize: "0.7rem", fontWeight: 800 }}>
-        👑 관리자
-      </span>
-      <button onClick={() => window.location.href = '/admin'}
-        style={{ padding: "5px 12px", fontSize: "0.72rem", fontWeight: 700, color: theme.text, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}>
-        🏠 홈
-      </button>
-    </>
-  );
-
   // 메인 대시보드
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-primary)" }}>
@@ -165,22 +152,20 @@ export default function TripPage() {
       <header style={{ background: theme.bg, color: theme.text, padding: "18px 16px 16px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
         <div style={{ maxWidth: 900, margin: "0 auto", position: "relative" }}>
-          {/* 상단: 관리자 버튼 (타이틀 없는 모드에서는 단독 줄) */}
-          {isAdmin && titleBlockMode === "hidden" && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8, gap: 6 }}>
-              {adminControls}
-            </div>
+          {/* 홈 버튼: 관리자 전용, 항상 우측 상단 고정 */}
+          {isAdmin && (
+            <button onClick={() => window.location.href = '/admin'}
+              style={{ position: "absolute", top: 0, right: 0, padding: "5px 12px", fontSize: "0.72rem", fontWeight: 700, color: theme.text, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}>
+              🏠 홈
+            </button>
           )}
 
           {/* 여행 정보 */}
           {titleBlockMode === "full" && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                <p style={{ letterSpacing: 3, fontSize: "0.7rem", color: theme.muted, textTransform: "uppercase", fontWeight: 800, margin: 0 }}>
-                  {trip.tripType || "FRIENDS TRIP"} · {trip.startDate.substring(0, 4)}
-                </p>
-                {isAdmin && <div style={{ display: "flex", gap: 6 }}>{adminControls}</div>}
-              </div>
+              <p style={{ letterSpacing: 3, fontSize: "0.7rem", color: theme.muted, textTransform: "uppercase", fontWeight: 800, marginBottom: 8, paddingRight: isAdmin ? 60 : 0 }}>
+                {trip.tripType || "FRIENDS TRIP"} · {trip.startDate.substring(0, 4)}
+              </p>
               <h1 style={{ fontWeight: 900, fontSize: "clamp(1.5rem, 6vw, 2.6rem)", lineHeight: 1.08, marginBottom: 6, color: theme.text, letterSpacing: "-0.02em" }}>
                 {trip.title}
               </h1>
@@ -196,45 +181,40 @@ export default function TripPage() {
             </>
           )}
           {titleBlockMode === "compact" && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: "1.1rem" }}>{trip.coverEmoji || "✈️"}</span>
-                <span style={{ fontWeight: 900, fontSize: "1rem", color: theme.text, letterSpacing: "-0.01em" }}>{trip.title}</span>
-                <span style={{ opacity: 0.5, color: theme.text, fontSize: "0.8rem" }}>·</span>
-                <span style={{ fontSize: "0.78rem", color: theme.muted, fontWeight: 700 }}>{trip.startDate} ~ {trip.endDate}</span>
-              </div>
-              {isAdmin && <div style={{ display: "flex", gap: 6 }}>{adminControls}</div>}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12, paddingRight: isAdmin ? 60 : 0 }}>
+              <span style={{ fontSize: "1.1rem" }}>{trip.coverEmoji || "✈️"}</span>
+              <span style={{ fontWeight: 900, fontSize: "1rem", color: theme.text, letterSpacing: "-0.01em" }}>{trip.title}</span>
+              <span style={{ opacity: 0.5, color: theme.text, fontSize: "0.8rem" }}>·</span>
+              <span style={{ fontSize: "0.78rem", color: theme.muted, fontWeight: 700 }}>{trip.startDate} ~ {trip.endDate}</span>
             </div>
           )}
 
-          {/* 참여자 뱃지 (내 닉네임은 음영 표시 + 바로 옆에 변경 버튼) */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-            {participants?.map(p => {
-              const isMe = p.nickname === nickname;
-              return (
-                <div key={p._id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: isMe ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.1)", color: theme.text, padding: "5px 12px", fontSize: "0.74rem", fontWeight: 800, borderRadius: 999, border: isMe ? "2px solid rgba(0,0,0,0.2)" : "2px solid transparent" }}>
+          {/* 참여자 뱃지 (내 닉네임은 음영 표시) + 변경 버튼 (맨 오른쪽) */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {participants?.map(p => {
+                const isMe = p.nickname === nickname;
+                return (
+                  <div key={p._id} style={{ display: "flex", alignItems: "center", gap: 4, background: isMe ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.1)", color: theme.text, padding: "5px 12px", fontSize: "0.74rem", fontWeight: 800, borderRadius: 999, border: isMe ? "2px solid rgba(0,0,0,0.2)" : "2px solid transparent" }}>
                     <span>{p.nickname}</span>
                     {isAdmin && (
                       <button onClick={() => { if (confirm(`'${p.nickname}' 참가자를 삭제하시겠습니까?`)) removeParticipant({ participantId: p._id }); }}
                         style={{ background: "transparent", border: "none", color: theme.text, opacity: 0.5, cursor: "pointer", padding: "0 2px", fontSize: "0.7rem", fontWeight: 900 }}>✕</button>
                     )}
                   </div>
-                  {isMe && (
-                    <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s" }}
-                      onClick={() => {
-                        localStorage.removeItem(`nickname_${shareId}`);
-                        setSelectedOldNickname(null);
-                        setInputNickname("");
-                        setNickname("");
-                        window.location.reload();
-                      }}>
-                      변경
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+            <button style={{ padding: "4px 10px", fontSize: "0.7rem", fontWeight: 800, color: theme.muted, border: `2px solid rgba(0,0,0,0.2)`, borderRadius: 999, background: "transparent", cursor: "pointer", transition: "all 0.15s", flexShrink: 0 }}
+              onClick={() => {
+                localStorage.removeItem(`nickname_${shareId}`);
+                setSelectedOldNickname(null);
+                setInputNickname("");
+                setNickname("");
+                window.location.reload();
+              }}>
+              변경
+            </button>
           </div>
         </div>
       </header>

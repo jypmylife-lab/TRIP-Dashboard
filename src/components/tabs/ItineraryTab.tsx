@@ -145,6 +145,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) return;
+    const scriptId = "google-maps-api";
 
     function initMapAndAutocomplete() {
       const google = (window as any).google;
@@ -184,14 +185,20 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       }
     }
 
-    if ((window as any).google) {
+    if ((window as any).google?.maps) {
       initMapAndAutocomplete();
     } else {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-      script.async = true;
-      script.onload = initMapAndAutocomplete;
-      document.head.appendChild(script);
+      const existingScript = document.getElementById(scriptId);
+      if (existingScript) {
+        existingScript.addEventListener("load", initMapAndAutocomplete);
+      } else {
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+        script.async = true;
+        script.onload = initMapAndAutocomplete;
+        document.head.appendChild(script);
+      }
     }
   }, [showPlaceModal, placeTab, editPlaceModal, mapInstance, days]);
 
