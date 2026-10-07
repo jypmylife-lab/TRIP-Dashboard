@@ -91,6 +91,13 @@ export default function MapTab({ trip }: { trip: any }) {
     return () => window.removeEventListener('viewMapCardDetail', handleViewDetail);
   }, []);
 
+  // 필터링된 장소가 바뀌면 해당 카드로 스크롤 이동
+  useEffect(() => {
+    if (!focusedId) return;
+    const el = document.getElementById(`map-card-${focusedId}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusedId]);
+
   // 구글 맵스 API 로드 및 초기화
   useEffect(() => {
     const scriptId = "google-maps-api";
@@ -149,7 +156,7 @@ export default function MapTab({ trip }: { trip: any }) {
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.05);">
                 <span
                   onclick="window.dispatchEvent(new CustomEvent('viewMapCardDetail', { detail: '${id}' }))"
-                  style="font-weight: 700; font-size: 0.9rem; color: #2563eb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; cursor: pointer;"
+                  style="font-weight: 700; font-size: 0.9rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; cursor: pointer;"
                 >
                   ${content}
                 </span>
@@ -383,6 +390,7 @@ export default function MapTab({ trip }: { trip: any }) {
                 .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
                 .gm-style-iw-tc { display: none !important; } /* 말풍선 꼬리 숨김(선선택) or 유지 선택가능 */
                 .gm-ui-hover-effect { display: none !important; }
+                .gm-style-iw-chr { display: none !important; height: 0 !important; } /* 구글 기본 닫기 버튼 영역이 남겨두는 빈 공간 제거 */
               `}</style>
               <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
               
@@ -454,14 +462,6 @@ export default function MapTab({ trip }: { trip: any }) {
           </button>
         ))}
       </div>
-
-      {/* 지도 핀에서 특정 장소를 선택했을 때 표시 */}
-      {focusedId && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 14px", background: "rgba(0,0,0,0.04)", borderRadius: 12, fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
-          <span>📍 선택한 장소만 보는 중</span>
-          <button onClick={() => setFocusedId(null)} style={{ background: "transparent", border: "none", color: "var(--accent)", fontWeight: 800, cursor: "pointer", fontSize: "0.8rem" }}>✕ 전체보기</button>
-        </div>
-      )}
 
       {/* 장소 목록 */}
       {places === undefined || accommodations === undefined ? <div style={{ textAlign: "center", padding: 40 }}><span className="spinner" style={{ margin: "0 auto" }} /></div>
