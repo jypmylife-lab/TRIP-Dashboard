@@ -186,15 +186,15 @@ export default function InfoTab({ trip }: { trip: any }) {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, width: "100%" }}>
                 {[
                   { label: "체감온도", value: `${weatherData.current.feelsLike}°C` },
                   { label: "습도", value: `${weatherData.current.humidity}%` },
                   { label: "풍속", value: `${weatherData.current.windSpeed} m/s` },
                 ].map((item, idx) => (
-                  <div key={item.label} style={{ background: "rgba(255,255,255,0.5)", borderRadius: 12, padding: "8px 16px", textAlign: "center", color: "#1a1a1a" }}>
+                  <div key={item.label} style={{ flex: 1, background: "rgba(255,255,255,0.5)", borderRadius: 12, padding: "8px 10px", textAlign: "center", color: "#1a1a1a" }}>
                     <div style={{ fontSize: "0.68rem", fontWeight: 800, marginBottom: 1, opacity: 0.8 }}>{item.label}</div>
-                    <div style={{ fontWeight: 900, fontSize: "0.95rem" }}>{item.value}</div>
+                    <div style={{ fontWeight: 900, fontSize: "0.95rem", whiteSpace: "nowrap" }}>{item.value}</div>
                   </div>
                 ))}
               </div>
