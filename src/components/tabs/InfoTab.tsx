@@ -166,15 +166,15 @@ export default function InfoTab({ trip }: { trip: any }) {
 
       {weatherData && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div className="glass" style={{ padding: 16, background: "var(--lime)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 18, position: "relative", overflow: "hidden" }}>
+          <div className="glass" style={{ padding: 12, background: "var(--lime)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 18, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -24, right: -24, width: 90, height: 90, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
             <div style={{ position: "relative" }}>
-              <p style={{ color: "rgba(0,0,0,0.6)", fontSize: "0.78rem", marginBottom: 2, fontWeight: 700 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                <span style={{ fontSize: 38 }}>{weatherEmoji(weatherData.current.icon)}</span>
+              <p style={{ color: "rgba(0,0,0,0.6)", fontSize: "0.74rem", marginBottom: 1, fontWeight: 700 }}>📍 {weatherData.city}, {weatherData.country} · 현재 날씨</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}>
+                <span style={{ fontSize: 32 }}>{weatherEmoji(weatherData.current.icon)}</span>
                 <div>
-                  <div style={{ fontSize: "2.1rem", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em" }}>{weatherData.current.temp}°</div>
-                  <div style={{ color: "rgba(0,0,0,0.7)", fontSize: "0.8rem", marginTop: 2, textTransform: "capitalize", fontWeight: 700 }}>{weatherData.current.description}</div>
+                  <div style={{ fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em" }}>{weatherData.current.temp}°</div>
+                  <div style={{ color: "rgba(0,0,0,0.7)", fontSize: "0.76rem", marginTop: 2, textTransform: "capitalize", fontWeight: 700 }}>{weatherData.current.description}</div>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
@@ -183,9 +183,9 @@ export default function InfoTab({ trip }: { trip: any }) {
                   { label: "습도", value: `${weatherData.current.humidity}%` },
                   { label: "풍속", value: `${weatherData.current.windSpeed} m/s` },
                 ].map((item) => (
-                  <div key={item.label} style={{ flex: 1, background: "rgba(255,255,255,0.5)", borderRadius: 10, padding: "5px 6px", textAlign: "center", color: "#1a1a1a" }}>
-                    <div style={{ fontSize: "0.62rem", fontWeight: 800, opacity: 0.8 }}>{item.label}</div>
-                    <div style={{ fontWeight: 900, fontSize: "0.82rem", whiteSpace: "nowrap" }}>{item.value}</div>
+                  <div key={item.label} style={{ flex: 1, background: "rgba(255,255,255,0.5)", borderRadius: 10, padding: "4px 6px", textAlign: "center", color: "#1a1a1a" }}>
+                    <div style={{ fontSize: "0.6rem", fontWeight: 800, opacity: 0.8 }}>{item.label}</div>
+                    <div style={{ fontWeight: 900, fontSize: "0.78rem", whiteSpace: "nowrap" }}>{item.value}</div>
                   </div>
                 ))}
               </div>

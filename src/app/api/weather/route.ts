@@ -66,13 +66,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: `도시를 찾을 수 없습니다: ${city}` }, { status: 404 });
     }
 
-    // 날짜별로 그룹화 (5일 예보)
-    const daily: Record<string, { temps: number[]; icon: string; description: string }> = {};
+    // 날짜별로 그룹화 (5일 예보) - OWM 타임스탬프는 UTC이므로, 현지 시간대로 변환해서
+    // 날짜 경계와 "낮 시간대" 대표값을 계산한다 (그렇지 않으면 현지 저녁 시간대가
+    // "그날의 날씨"로 뽑혀서 실제보다 비/흐림이 과하게 표시될 수 있음)
+    const tzOffsetSec: number = forecastData.city.timezone;
+    const daily: Record<string, { temps: number[]; icon: string; description: string; bestHourDiff: number }> = {};
     for (const item of forecastData.list) {
-      const date = item.dt_txt.split(" ")[0];
-      if (!daily[date]) daily[date] = { temps: [], icon: item.weather[0].icon, description: item.weather[0].description };
+      const localDate = new Date((item.dt + tzOffsetSec) * 1000);
+      const date = localDate.toISOString().slice(0, 10);
+      const localHour = localDate.getUTCHours();
+      if (!daily[date]) daily[date] = { temps: [], icon: item.weather[0].icon, description: item.weather[0].description, bestHourDiff: Infinity };
       daily[date].temps.push(item.main.temp);
-      if (item.dt_txt.includes("12:00:00")) {
+      const hourDiff = Math.abs(localHour - 12);
+      if (hourDiff < daily[date].bestHourDiff) {
+        daily[date].bestHourDiff = hourDiff;
         daily[date].icon = item.weather[0].icon;
         daily[date].description = item.weather[0].description;
       }
