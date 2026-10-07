@@ -201,16 +201,13 @@ export default function InfoTab({ trip }: { trip: any }) {
             );
             return (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(84px, 1fr))", gap: 6 }}>
-                {valid.map((day, i) => {
-                  const bgColors = ["var(--mint)", "var(--yellow)", "var(--coral)", "var(--sky)", "var(--lavender)"];
-                  return (
-                  <div key={day.date} className="glass" style={{ padding: "10px 6px", textAlign: "center", borderRadius: 12, background: bgColors[i % bgColors.length], border: "2px solid rgba(0,0,0,0.06)", color: "#1a1a1a" }}>
+                {valid.map((day) => (
+                  <div key={day.date} className="glass" style={{ padding: "10px 6px", textAlign: "center", borderRadius: 12, background: "#ffffff", border: "2px solid rgba(0,0,0,0.06)", color: "#1a1a1a" }}>
                     <div style={{ fontSize: "0.66rem", color: "rgba(0,0,0,0.55)", marginBottom: 4, fontWeight: 700 }}>{formatDate(day.date)}</div>
                     <div style={{ fontSize: 22, marginBottom: 4 }}>{weatherEmoji(day.icon)}</div>
                     <div style={{ fontSize: "0.88rem", fontWeight: 900 }}>{day.maxTemp}°<span style={{ fontSize: "0.68rem", color: "rgba(0,0,0,0.45)", fontWeight: 600 }}> {day.minTemp}°</span></div>
                   </div>
-                  );
-                })}
+                ))}
               </div>
             );
           })()}
@@ -221,35 +218,35 @@ export default function InfoTab({ trip }: { trip: any }) {
       <div style={{ display: "grid", gridTemplateColumns: (timezone || offsetSeconds !== undefined) && trip.currency && trip.currency !== "KRW" ? "1fr 1fr" : "1fr", gap: 10 }}>
         {/* 환율 정보 */}
         {trip.currency && trip.currency !== "KRW" && (
-          <div className="glass" style={{ padding: 12, borderRadius: 16 }}>
+          <div className="glass" style={{ padding: 12, borderRadius: 16, background: "var(--mint)", color: "#1a1a1a", border: "2px solid rgba(0,0,0,0.08)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4, marginBottom: 6 }}>
-              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 800 }}>💱 환율</div>
-              {isFallback && <span className="badge" style={{ fontSize: "0.56rem", background: "var(--lime)", color: "#1a1a1a", whiteSpace: "nowrap" }}>참고용</span>}
+              <div style={{ fontSize: "0.72rem", color: "rgba(0,0,0,0.5)", fontWeight: 800 }}>💱 환율</div>
+              {isFallback && <span className="badge" style={{ fontSize: "0.56rem", background: "#ffffff", color: "#1a1a1a", whiteSpace: "nowrap" }}>참고용</span>}
             </div>
             {rateLoading ? (
               <div style={{ textAlign: "center", padding: 10 }}><span className="spinner" /></div>
             ) : rate ? (
               <>
-                <div style={{ textAlign: "center", marginBottom: 8, padding: "8px", background: "var(--lime)", borderRadius: 10, color: "#1a1a1a" }}>
-                  <div style={{ fontSize: "0.64rem", color: "rgba(0,0,0,0.5)", marginBottom: 1, fontWeight: 700 }}>1 {trip.currency}</div>
-                  <div style={{ fontSize: "1.2rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
+                <div style={{ textAlign: "center", marginBottom: 8, padding: "6px", background: "#ffffff", borderRadius: 10, color: "#1a1a1a" }}>
+                  <div style={{ fontSize: "0.6rem", color: "rgba(0,0,0,0.5)", marginBottom: 1, fontWeight: 700 }}>1 {trip.currency}</div>
+                  <div style={{ fontSize: "0.98rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
                     {rate.toLocaleString("ko-KR", { maximumFractionDigits: 2 })} ₩
                   </div>
                 </div>
                 {/* 환율 계산기 */}
                 <input className="input" type="number" placeholder={calcDirection === "toKRW" ? `${sym} 금액` : "₩ 금액"}
                   value={calcAmount} onChange={e => setCalcAmount(e.target.value)}
-                  style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, padding: "6px 8px", marginBottom: 6, width: "100%" }} />
+                  style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, padding: "6px 8px", marginBottom: 6, width: "100%", minHeight: "auto" }} />
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <button onClick={() => setCalcDirection(d => d === "toKRW" ? "fromKRW" : "toKRW")}
-                    style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.1)", background: "var(--lime)", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800 }}>⇄</button>
-                  <div style={{ flex: 1, textAlign: "center", padding: "6px", background: "rgba(0,0,0,0.03)", borderRadius: 8, fontSize: "0.8rem", fontWeight: 800, color: calcResult ? "var(--text-primary)" : "var(--text-muted)" }}>
+                    style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid rgba(0,0,0,0.1)", background: "#ffffff", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800 }}>⇄</button>
+                  <div style={{ flex: 1, textAlign: "center", padding: "6px", background: "#ffffff", borderRadius: 8, fontSize: "0.8rem", fontWeight: 800, color: calcResult ? "var(--text-primary)" : "var(--text-muted)" }}>
                     {calcResult || (calcDirection === "toKRW" ? "₩ ?" : `${sym} ?`)}
                   </div>
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", padding: 10, color: "var(--text-muted)", fontSize: "0.75rem" }}>불러올 수 없음</div>
+              <div style={{ textAlign: "center", padding: 10, color: "rgba(0,0,0,0.6)", fontSize: "0.75rem" }}>불러올 수 없음</div>
             )}
           </div>
         )}
