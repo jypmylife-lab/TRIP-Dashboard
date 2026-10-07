@@ -60,6 +60,9 @@ export default function TripPage() {
     }
   }
 
+  // 상단 타이틀 영역(태그라인~날짜) 표시 방식 테스트: 지도는 축소, 일정은 완전히 숨김
+  const titleBlockMode = activeTab === "itinerary" ? "hidden" : activeTab === "map" ? "compact" : "full";
+
   const currentThemeColor = trip?.themeColor;
   const theme = THEME_COLORS.find(c => c.bg === currentThemeColor) || THEME_COLORS[0];
   if (trip === undefined) {
@@ -163,18 +166,30 @@ export default function TripPage() {
           )}
 
           {/* 여행 정보 */}
-          <p style={{ letterSpacing: 3, fontSize: "0.7rem", marginBottom: 8, color: theme.muted, textTransform: "uppercase", fontWeight: 800 }}>
-            {trip.tripType || "FRIENDS TRIP"} · {trip.startDate.substring(0, 4)}
-          </p>
-          <h1 style={{ fontWeight: 900, fontSize: "clamp(1.5rem, 6vw, 2.6rem)", lineHeight: 1.08, marginBottom: 8, color: theme.text, letterSpacing: "-0.02em" }}>
-            {trip.title}
-          </h1>
-          <p style={{ fontSize: "clamp(0.85rem, 3vw, 1.05rem)", fontWeight: 700, opacity: 0.8, marginBottom: 4, color: theme.text }}>
-            {trip.destination}
-          </p>
-          <p style={{ fontSize: "0.8rem", color: theme.muted, marginBottom: 12, fontWeight: 700 }}>
-            {trip.startDate} ~ {trip.endDate}
-          </p>
+          {titleBlockMode === "full" && (
+            <>
+              <p style={{ letterSpacing: 3, fontSize: "0.7rem", marginBottom: 8, color: theme.muted, textTransform: "uppercase", fontWeight: 800 }}>
+                {trip.tripType || "FRIENDS TRIP"} · {trip.startDate.substring(0, 4)}
+              </p>
+              <h1 style={{ fontWeight: 900, fontSize: "clamp(1.5rem, 6vw, 2.6rem)", lineHeight: 1.08, marginBottom: 8, color: theme.text, letterSpacing: "-0.02em" }}>
+                {trip.title}
+              </h1>
+              <p style={{ fontSize: "clamp(0.85rem, 3vw, 1.05rem)", fontWeight: 700, opacity: 0.8, marginBottom: 4, color: theme.text }}>
+                {trip.destination}
+              </p>
+              <p style={{ fontSize: "0.8rem", color: theme.muted, marginBottom: 12, fontWeight: 700 }}>
+                {trip.startDate} ~ {trip.endDate}
+              </p>
+            </>
+          )}
+          {titleBlockMode === "compact" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: "1.1rem" }}>{trip.coverEmoji || "✈️"}</span>
+              <span style={{ fontWeight: 900, fontSize: "1rem", color: theme.text, letterSpacing: "-0.01em" }}>{trip.title}</span>
+              <span style={{ opacity: 0.5, color: theme.text, fontSize: "0.8rem" }}>·</span>
+              <span style={{ fontSize: "0.78rem", color: theme.muted, fontWeight: 700 }}>{trip.startDate} ~ {trip.endDate}</span>
+            </div>
+          )}
 
           {/* 참여자 뱃지 + 닉네임 */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
