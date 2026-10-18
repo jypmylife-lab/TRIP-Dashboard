@@ -91,6 +91,42 @@ const MANEUVER_INFO: Record<string, { label: string; rotation: number }> = {
   UNKNOWN_MANEUVER: { label: "직진", rotation: 0 },
 };
 
+// 클릭 가능한 5점 별점 위젯 (0~10점, 0.5점 단위 = 별 1개당 2점, 왼쪽 반/오른쪽 반 클릭으로 0.5점 단위 선택)
+function StarRating({ score, onChange, size = 20, readOnly = false }: { score: number; onChange?: (score: number) => void; size?: number; readOnly?: boolean }) {
+  return (
+    <div style={{ display: "inline-flex", gap: 1 }}>
+      {[1, 2, 3, 4, 5].map((i) => {
+        const starValue = score - (i - 1) * 2; // 이 별 하나에 해당하는 값 (0~2)
+        const fillPct = Math.max(0, Math.min(1, starValue / 2)) * 100; // 0%, 50%, 100%
+        return (
+          <div key={i} style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+            {/* 빈 별 (배경) */}
+            <svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "absolute", top: 0, left: 0 }}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="rgba(0,0,0,0.12)" />
+            </svg>
+            {/* 채워진 별 (0%/50%/100%로 클리핑) */}
+            <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPct}%`, height: size, overflow: "hidden" }}>
+              <svg width={size} height={size} viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="var(--warning)" />
+              </svg>
+            </div>
+            {!readOnly && onChange && (
+              <>
+                <button type="button" onClick={() => onChange((i - 1) * 2 + 1)}
+                  style={{ position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                  aria-label={`${(i - 1) * 2 + 1}점`} />
+                <button type="button" onClick={() => onChange(i * 2)}
+                  style={{ position: "absolute", top: 0, right: 0, width: "50%", height: "100%", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                  aria-label={`${i * 2}점`} />
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function getDaysBetween(start: string, end: string) {
   const days: { dayNumber: number; date: string; weekday: string }[] = [];
   const s = new Date(start);
@@ -155,6 +191,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const updateItem = useMutation(api.itinerary.updateItem);
   const removeItem = useMutation(api.itinerary.removeItem);
   const rateItem = useMutation(api.itinerary.rateItem);
+  const addPlace = useMutation(api.places.addPlace);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [focusedDayId, setFocusedDayId] = useState<string | null>(null);
@@ -688,6 +725,13 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       placeAddress: placeForm.address || undefined, placeLat: lat, placeLng: lng,
       time: placeForm.time || undefined,
     });
+
+    // 일정에서 직접 입력한 신규 장소는 지도 탭에서도 보이도록 places 테이블에도 저장
+    await addPlace({
+      tripId: trip._id, name: placeForm.name.trim(), category: placeForm.category,
+      address: placeForm.address || undefined, lat, lng,
+    });
+
     setPlaceForm({ name: "", category: "attraction", address: "", time: "", lat: undefined, lng: undefined });
     setShowPlaceModal(null);
     setSaving(false);
@@ -709,10 +753,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setEditingTime(null);
   }
 
-  async function handleRate(item: any, delta: number) {
+  async function handleRate(item: any, score: number) {
     const current = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
-    const next = Math.min(10, Math.max(0, current + delta));
-    await rateItem({ itemId: item._id, nickname, score: next });
+    // 이미 선택된 값을 다시 누르면 평점 취소 (0점으로)
+    await rateItem({ itemId: item._id, nickname, score: current === score ? 0 : score });
   }
 
   async function handleMoveItem(item: any, direction: "up" | "down", dayItems: any[]) {
@@ -968,17 +1012,21 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             const myScore = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
                                             const others = (item.ratings || []).filter((r: any) => r.nickname !== nickname);
                                             return (
-                                              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 2, background: "rgba(245,158,11,0.08)", borderRadius: 8, padding: "2px 4px" }}>
-                                                  <button onClick={() => handleRate(item, -0.5)} disabled={myScore <= 0}
-                                                    style={{ width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent", color: myScore <= 0 ? "rgba(0,0,0,0.2)" : "var(--text-secondary)", cursor: myScore <= 0 ? "default" : "pointer", fontWeight: 800, fontSize: "0.85rem" }}>−</button>
-                                                  <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "var(--warning)", minWidth: 44, textAlign: "center" }}>⭐ {myScore.toFixed(1)}</span>
-                                                  <button onClick={() => handleRate(item, 0.5)} disabled={myScore >= 10}
-                                                    style={{ width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent", color: myScore >= 10 ? "rgba(0,0,0,0.2)" : "var(--text-secondary)", cursor: myScore >= 10 ? "default" : "pointer", fontWeight: 800, fontSize: "0.85rem" }}>+</button>
+                                              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                  <StarRating score={myScore} onChange={(s) => handleRate(item, s)} size={18} />
+                                                  <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>{myScore > 0 ? `내 평점 ${myScore.toFixed(1)}` : "별점 매기기"}</span>
                                                 </div>
-                                                {others.map((r: any) => (
-                                                  <span key={r.nickname} className="badge" style={{ fontSize: "0.66rem" }}>{r.nickname} ⭐{r.score.toFixed(1)}</span>
-                                                ))}
+                                                {others.length > 0 && (
+                                                  <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 2 }}>
+                                                    {others.map((r: any) => (
+                                                      <div key={r.nickname} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                        <StarRating score={r.score} readOnly size={14} />
+                                                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{r.nickname} · {r.score.toFixed(1)}</span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                )}
                                               </div>
                                             );
                                           })()}

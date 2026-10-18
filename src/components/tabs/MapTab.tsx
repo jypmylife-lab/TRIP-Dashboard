@@ -175,6 +175,13 @@ export default function MapTab({ trip }: { trip: any }) {
         if (isMapExpandedRef.current && mapInstance) {
           mapInstance.panTo(pos);
           if (mapInstance.getZoom() < 16) mapInstance.setZoom(16);
+          // 하단 시트(최대 52% 높이)에 핀이 가려지지 않도록, 가려지지 않는 위쪽 영역의 중앙쯤에 오도록 살짝 위로 보정
+          const containerHeight = mapRef.current?.clientHeight;
+          if (containerHeight) {
+            google.maps.event.addListenerOnce(mapInstance, "idle", () => {
+              mapInstance.panBy(0, containerHeight * 0.24);
+            });
+          }
         }
       });
     };
@@ -258,7 +265,9 @@ export default function MapTab({ trip }: { trip: any }) {
     
     let lat: number | undefined;
     let lng: number | undefined;
-    
+    let resolvedName: string | undefined;
+    let resolvedAddress: string | undefined;
+
     try {
       if (form.mapLink) {
         // 1. @lat,lng 패턴 (모바일/표준)
@@ -285,7 +294,8 @@ export default function MapTab({ trip }: { trip: any }) {
             lng = pLng;
           }
         } else if (form.mapLink.startsWith("http")) {
-          // 서버 사이드 리졸버 호출 (단축 링크 해결)
+          // 서버 사이드 리졸버 호출 (단축 링크 해결). onBlur 자동완성이 아직 안 끝났거나
+          // 못 미더운 경우를 대비해, 저장 시점에도 이름/주소를 한 번 더 채워줌
           try {
             const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(form.mapLink)}`);
             const data = await res.json();
@@ -293,6 +303,8 @@ export default function MapTab({ trip }: { trip: any }) {
               lat = data.lat;
               lng = data.lng;
             }
+            if (data.name) resolvedName = data.name;
+            if (data.address) resolvedAddress = data.address;
           } catch (e) {
             console.warn("Link resolution API failed", e);
           }
@@ -317,9 +329,16 @@ export default function MapTab({ trip }: { trip: any }) {
         }
       }
 
+      const finalName = form.name || resolvedName || "";
+      if (!finalName) {
+        setMapError("장소 이름을 확인하지 못했습니다. 이름을 직접 입력해주세요.");
+        setSaving(false);
+        return;
+      }
+
       const payload = {
-        name: form.name,
-        address: form.address || undefined,
+        name: finalName,
+        address: form.address || resolvedAddress || undefined,
         lat: (lat !== undefined && !isNaN(lat)) ? lat : undefined,
         lng: (lng !== undefined && !isNaN(lng)) ? lng : undefined,
         mapLink: form.mapLink || undefined,
@@ -716,12 +735,13 @@ export default function MapTab({ trip }: { trip: any }) {
             </div>
             {mapError && <p style={{ color: "var(--danger)", fontSize: "0.82rem", marginBottom: 12 }}>{mapError}</p>}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div><label>장소 이름 *</label><input ref={formNameInputRef} className="input" placeholder="예: 도톤보리 (검색 시 자동완성)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
+              <div><label>장소 이름 {!form.mapLink && "*"}</label><input ref={formNameInputRef} className="input" placeholder="예: 도톤보리 (검색 시 자동완성, 지도 링크만 입력해도 됨)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required={!form.mapLink} /></div>
               <div>
                 <label>구글 지도 링크 (선택)</label>
                 <input className="input" placeholder="https://maps.app.goo.gl/..." value={form.mapLink}
                   onChange={e => setForm(f => ({ ...f, mapLink: e.target.value }))}
-                  onBlur={handleMapLinkBlur} />
+                  onBlur={handleMapLinkBlur}
+                  onPaste={() => setTimeout(handleMapLinkBlur, 0)} />
                 {resolvingLink && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>🔎 이름/주소 자동완성 중...</p>}
               </div>
               <div><label>주소 (선택)</label><input className="input" placeholder="주소 직접 입력 가능" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
