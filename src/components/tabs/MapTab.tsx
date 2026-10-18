@@ -385,6 +385,14 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }
 
+  // 블러/붙여넣기 이벤트에 의존하지 않고, 입력이 잠시 멈추면(600ms) 자동으로 한 번 더 확인 (모바일 브라우저의 blur 타이밍 불안정 대비)
+  useEffect(() => {
+    if (!showForm || !form.mapLink.startsWith("http")) return;
+    const handle = setTimeout(() => { handleMapLinkBlur(); }, 600);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.mapLink, showForm]);
+
   function handleEdit(p: any) {
     setForm({ name: p.name || "", address: p.address || "", mapLink: p.mapLink || "", category: p.category || "attraction", notes: p.notes || "" });
     setEditingId(p._id);

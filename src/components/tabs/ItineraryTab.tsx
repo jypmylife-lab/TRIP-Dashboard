@@ -173,13 +173,13 @@ function ItemRating({ item, nickname, onRate }: { item: any; nickname: string; o
       ) : (
         <button onClick={() => setEditing(true)}
           style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4, background: myScore > 0 ? "rgba(245,158,11,0.1)" : "rgba(0,0,0,0.04)", border: "none", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontSize: "0.76rem", fontWeight: 700, color: myScore > 0 ? "var(--warning)" : "var(--text-muted)" }}>
-          {myScore > 0 ? `⭐ ${myScore.toFixed(1)}` : "별점 매기기"}
+          {myScore > 0 ? `⭐ ${nickname} ${myScore.toFixed(1)}점` : "별점 매기기"}
         </button>
       )}
       {others.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingLeft: 2 }}>
           {others.map((r: any) => (
-            <span key={r.nickname} style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{r.nickname} ⭐{r.score.toFixed(1)}</span>
+            <span key={r.nickname} style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>⭐ {r.nickname} {r.score.toFixed(1)}점</span>
           ))}
         </div>
       )}
@@ -780,6 +780,14 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       setResolvingPlaceLink(false);
     }
   }
+
+  // 블러/붙여넣기 이벤트에 의존하지 않고, 입력이 잠시 멈추면(600ms) 자동으로 한 번 더 확인 (모바일 브라우저의 blur 타이밍 불안정 대비)
+  useEffect(() => {
+    if (!(showPlaceModal || editPlaceModal) || !placeForm.mapLink.startsWith("http")) return;
+    const handle = setTimeout(() => { handlePlaceMapLinkBlur(); }, 600);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placeForm.mapLink, showPlaceModal, editPlaceModal]);
 
   // 장소 이름/주소/좌표를 지도 링크 → 저장된 좌표 → 이름 기반 Geocoding 순서로 채움 (저장 시점 최종 확인)
   async function resolvePlaceFields() {
