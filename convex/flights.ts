@@ -21,6 +21,7 @@ export const add = mutation({
     type: v.string(),
     imageStorageId: v.optional(v.string()),
     notes: v.optional(v.string()),
+    checkInCounter: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("flights", { ...args, createdAt: Date.now() });
@@ -39,6 +40,7 @@ export const update = mutation({
     date: v.optional(v.string()),
     type: v.optional(v.string()),
     notes: v.optional(v.string()),
+    checkInCounter: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { flightId, ...fields } = args;

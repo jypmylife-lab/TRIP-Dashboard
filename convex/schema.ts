@@ -37,6 +37,7 @@ export default defineSchema({
     type: v.string(),             // "outbound" | "return"
     imageStorageId: v.optional(v.string()),
     notes: v.optional(v.string()),
+    checkInCounter: v.optional(v.string()), // 체크인 카운터 (예: "D")
     createdAt: v.number(),
   }).index("by_tripId", ["tripId"]),
 

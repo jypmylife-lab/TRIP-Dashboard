@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { analyzeImage } from "@/components/ImageUploader";
 
-const EMPTY_FORM = { airline: "", flightNumber: "", departure: "", arrival: "", departureTime: "", arrivalTime: "", date: "", type: "outbound", notes: "" };
+const EMPTY_FORM = { airline: "", flightNumber: "", departure: "", arrival: "", departureTime: "", arrivalTime: "", date: "", type: "outbound", notes: "", checkInCounter: "" };
 
 export default function FlightsTab({ trip, nickname }: { trip: any; nickname: string }) {
   const flights = useQuery(api.flights.listByTrip, { tripId: trip._id });
@@ -61,7 +61,7 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
   }
 
   function handleEdit(f: any) {
-    setForm({ airline: f.airline || "", flightNumber: f.flightNumber || "", departure: f.departure || "", arrival: f.arrival || "", departureTime: f.departureTime || "", arrivalTime: f.arrivalTime || "", date: f.date || "", type: f.type || "outbound", notes: f.notes || "" });
+    setForm({ airline: f.airline || "", flightNumber: f.flightNumber || "", departure: f.departure || "", arrival: f.arrival || "", departureTime: f.departureTime || "", arrivalTime: f.arrivalTime || "", date: f.date || "", type: f.type || "outbound", notes: f.notes || "", checkInCounter: f.checkInCounter || "" });
     setEditingId(f._id);
     setShowForm(true);
   }
@@ -126,6 +126,11 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                     <div style={{ fontSize: "1.2rem", fontWeight: 900, color: "var(--text-primary)", marginTop: 4 }}>
                       {f.departureTime}
                     </div>
+                    {f.checkInCounter && (
+                      <div style={{ marginTop: 4, fontSize: "0.72rem", fontWeight: 700, color: "var(--accent)", background: "rgba(99,102,241,0.08)", display: "inline-block", padding: "2px 8px", borderRadius: 999 }}>
+                        체크인 {f.checkInCounter}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 4px 0" }}>
@@ -204,6 +209,7 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                   </select>
                 </div>
               </div>
+              <div><label>체크인 카운터</label><input className="input" placeholder="예: D (알고 있다면 입력)" value={form.checkInCounter} onChange={e => setForm(f => ({ ...f, checkInCounter: e.target.value }))} /></div>
               <div><label>메모</label><input className="input" placeholder="메모 (선택)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
                 <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowForm(false)}>취소</button>
