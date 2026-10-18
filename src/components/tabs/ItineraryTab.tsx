@@ -259,7 +259,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [dragOverItem, setDragOverItem] = useState<any>(null);
   const [reorderItem, setReorderItem] = useState<string | null>(null);
   const [showPlaceModal, setShowPlaceModal] = useState<string | null>(null);
-  const [placeForm, setPlaceForm] = useState({ name: "", category: "attraction", address: "", time: "", lat: undefined as number|undefined, lng: undefined as number|undefined });
+  const [placeForm, setPlaceForm] = useState({ name: "", category: "attraction", address: "", time: "", mapLink: "", lat: undefined as number|undefined, lng: undefined as number|undefined });
+  const [resolvingPlaceLink, setResolvingPlaceLink] = useState(false);
   const [placeTab, setPlaceTab] = useState<"saved" | "search">("saved");
   const [editingTime, setEditingTime] = useState<string | null>(null);
   const [editTimeVal, setEditTimeVal] = useState("");
@@ -759,17 +760,48 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     return (allItems || []).filter((it: any) => it.dayId === dayId).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
   }
 
-  async function handleAddPlace(dayId: string) {
-    if (!placeForm.name.trim()) return;
-    setSaving(true);
-    const items = getItemsForDay(dayId);
+  // 구글 지도 링크 붙여넣기 시 이름/주소/좌표를 자동으로 채워줌 (실시간 미리보기용, 저장 시점에도 한 번 더 확인함)
+  async function handlePlaceMapLinkBlur() {
+    if (!placeForm.mapLink.startsWith("http")) return;
+    setResolvingPlaceLink(true);
+    try {
+      const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(placeForm.mapLink)}`);
+      const data = await res.json();
+      setPlaceForm(f => ({
+        ...f,
+        name: f.name || data.name || f.name,
+        address: f.address || data.address || f.address,
+        lat: f.lat ?? (data.lat ?? undefined),
+        lng: f.lng ?? (data.lng ?? undefined),
+      }));
+    } catch (e) {
+      console.warn("지도 링크 자동완성 실패", e);
+    } finally {
+      setResolvingPlaceLink(false);
+    }
+  }
+
+  // 장소 이름/주소/좌표를 지도 링크 → 저장된 좌표 → 이름 기반 Geocoding 순서로 채움 (저장 시점 최종 확인)
+  async function resolvePlaceFields() {
+    let name = placeForm.name.trim();
+    let address = placeForm.address || undefined;
     let lat = placeForm.lat;
     let lng = placeForm.lng;
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
-    if (apiKey && placeForm.name && (lat === undefined || lng === undefined)) {
+
+    if (placeForm.mapLink.startsWith("http") && (!name || lat === undefined || lng === undefined)) {
       try {
-        const q = encodeURIComponent(`${placeForm.name} ${placeForm.address || trip.destination}`);
+        const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(placeForm.mapLink)}`);
+        const data = await res.json();
+        if (!name && data.name) name = data.name;
+        if (!address && data.address) address = data.address;
+        if ((lat === undefined || lng === undefined) && data.lat && data.lng) { lat = data.lat; lng = data.lng; }
+      } catch (e) { /* ignore */ }
+    }
+
+    if (apiKey && name && (lat === undefined || lng === undefined)) {
+      try {
+        const q = encodeURIComponent(`${name} ${address || trip.destination}`);
         const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
         const data = await res.json();
         if (data.results?.[0]) {
@@ -778,21 +810,36 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         }
       } catch (e) { /* ignore */ }
     }
-    
+
+    return { name, address, lat, lng };
+  }
+
+  async function handleAddPlace(dayId: string) {
+    if (!placeForm.name.trim() && !placeForm.mapLink.trim()) return;
+    setSaving(true);
+    const items = getItemsForDay(dayId);
+    const { name, address, lat, lng } = await resolvePlaceFields();
+
+    if (!name) {
+      setSaving(false);
+      return;
+    }
+
     await addItem({
       dayId: dayId as any, tripId: trip._id, orderIndex: items.length,
-      type: "place", placeName: placeForm.name.trim(), placeCategory: placeForm.category,
-      placeAddress: placeForm.address || undefined, placeLat: lat, placeLng: lng,
+      type: "place", placeName: name, placeCategory: placeForm.category,
+      placeAddress: address, placeLat: lat, placeLng: lng,
+      placeMapLink: placeForm.mapLink || undefined,
       time: placeForm.time || undefined,
     });
 
     // 일정에서 직접 입력한 신규 장소는 지도 탭에서도 보이도록 places 테이블에도 저장
     await addPlace({
-      tripId: trip._id, name: placeForm.name.trim(), category: placeForm.category,
-      address: placeForm.address || undefined, lat, lng,
+      tripId: trip._id, name, category: placeForm.category,
+      address, lat, lng, mapLink: placeForm.mapLink || undefined,
     });
 
-    setPlaceForm({ name: "", category: "attraction", address: "", time: "", lat: undefined, lng: undefined });
+    setPlaceForm({ name: "", category: "attraction", address: "", time: "", mapLink: "", lat: undefined, lng: undefined });
     setShowPlaceModal(null);
     setSaving(false);
   }
@@ -1113,6 +1160,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             setPlaceForm({
                                               name: item.placeName || "", category: item.placeCategory || "attraction",
                                               address: item.placeAddress || "", time: item.time || "",
+                                              mapLink: item.placeMapLink || "",
                                               lat: item.placeLat, lng: item.placeLng
                                             });
                                           }} style={{ width: 36, display: "flex", justifyContent: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 6, cursor: "pointer", fontSize: 11, color: "var(--accent)", padding: "5px 0", lineHeight: 1, transition: "all 0.15s", whiteSpace: "nowrap", fontWeight: 700, marginTop: 4 }}>편집</button>
@@ -1135,7 +1183,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
                     {/* 추가 버튼 */}
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => { setShowPlaceModal(day._id); setPlaceTab("saved"); }}
+                      <button onClick={() => { setShowPlaceModal(day._id); setPlaceTab("saved"); setPlaceForm({ name: "", category: "attraction", address: "", time: "", mapLink: "", lat: undefined, lng: undefined }); }}
                         style={{ flex: 1, padding: "10px", border: "1px dashed rgba(0,0,0,0.15)", borderRadius: 10, background: "#fafafa", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-secondary)", transition: "all 0.15s" }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = "var(--accent)"}
                         onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(0,0,0,0.15)"}>
@@ -1198,7 +1246,15 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div><label>장소 이름 검색 (구글맵 자동완성) *</label><input ref={searchInputRef} className="input" placeholder="예: 도톤보리" value={placeForm.name} onChange={e => setPlaceForm(f => ({ ...f, name: e.target.value }))} /></div>
+                <div>
+                  <label>구글 지도 링크 (선택)</label>
+                  <input className="input" placeholder="https://maps.app.goo.gl/... (붙여넣으면 이름/주소 자동완성)" value={placeForm.mapLink}
+                    onChange={e => setPlaceForm(f => ({ ...f, mapLink: e.target.value }))}
+                    onBlur={handlePlaceMapLinkBlur}
+                    onPaste={() => setTimeout(handlePlaceMapLinkBlur, 0)} />
+                  {resolvingPlaceLink && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>🔎 이름/주소 자동완성 중...</p>}
+                </div>
+                <div><label>장소 이름 검색 {!placeForm.mapLink && "(구글맵 자동완성) *"}</label><input ref={searchInputRef} className="input" placeholder="예: 도톤보리 (지도 링크만 입력해도 됨)" value={placeForm.name} onChange={e => setPlaceForm(f => ({ ...f, name: e.target.value }))} /></div>
                 <div><label>주소 (선택)</label><input className="input" placeholder="주소 입력" value={placeForm.address} onChange={e => setPlaceForm(f => ({ ...f, address: e.target.value }))} /></div>
                 <div><label>시간 (선택)</label><TimePicker value={placeForm.time} onChange={time => setPlaceForm(f => ({ ...f, time }))} /></div>
                 <div>
@@ -1214,7 +1270,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowPlaceModal(null)}>취소</button>
-                  <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleAddPlace(showPlaceModal)} disabled={saving || !placeForm.name.trim()}>
+                  <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleAddPlace(showPlaceModal)} disabled={saving || (!placeForm.name.trim() && !placeForm.mapLink.trim())}>
                     {saving ? <span className="spinner" /> : "추가"}
                   </button>
                 </div>
@@ -1230,7 +1286,15 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 16 }}>📍 장소 수정</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div><label>장소 이름 검색 (구글맵 자동완성) *</label><input ref={searchInputRef} className="input" placeholder="예: 도톤보리" value={placeForm.name} onChange={e => setPlaceForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div>
+                <label>구글 지도 링크 (선택)</label>
+                <input className="input" placeholder="https://maps.app.goo.gl/... (붙여넣으면 이름/주소 자동완성)" value={placeForm.mapLink}
+                  onChange={e => setPlaceForm(f => ({ ...f, mapLink: e.target.value }))}
+                  onBlur={handlePlaceMapLinkBlur}
+                  onPaste={() => setTimeout(handlePlaceMapLinkBlur, 0)} />
+                {resolvingPlaceLink && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>🔎 이름/주소 자동완성 중...</p>}
+              </div>
+              <div><label>장소 이름 검색 {!placeForm.mapLink && "(구글맵 자동완성) *"}</label><input ref={searchInputRef} className="input" placeholder="예: 도톤보리" value={placeForm.name} onChange={e => setPlaceForm(f => ({ ...f, name: e.target.value }))} /></div>
               <div><label>주소 (선택)</label><input className="input" placeholder="주소 입력" value={placeForm.address} onChange={e => setPlaceForm(f => ({ ...f, address: e.target.value }))} /></div>
               <div><label>시간 (선택)</label><TimePicker value={placeForm.time} onChange={time => setPlaceForm(f => ({ ...f, time }))} /></div>
               <div>
@@ -1247,26 +1311,14 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
               <div style={{ display: "flex", gap: 10 }}>
                 <button className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setEditPlaceModal(null)}>취소</button>
                 <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={async () => {
-                   if (!placeForm.name.trim()) return;
+                   if (!placeForm.name.trim() && !placeForm.mapLink.trim()) return;
                    setSaving(true);
-                   let lat = placeForm.lat;
-                   let lng = placeForm.lng;
-                   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-                   if (apiKey && placeForm.name && (lat === undefined || lng === undefined)) {
-                     try {
-                       const q = encodeURIComponent(`${placeForm.name} ${placeForm.address || trip.destination}`);
-                       const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
-                       const data = await res.json();
-                       if (data.results?.[0]) {
-                         lat = data.results[0].geometry.location.lat;
-                         lng = data.results[0].geometry.location.lng;
-                       }
-                     } catch (e) { /* ignore */ }
-                   }
-                   await updateItem({ itemId: editPlaceModal._id, placeName: placeForm.name, placeCategory: placeForm.category, placeAddress: placeForm.address || undefined, placeLat: lat, placeLng: lng, time: placeForm.time || undefined });
+                   const { name, address, lat, lng } = await resolvePlaceFields();
+                   if (!name) { setSaving(false); return; }
+                   await updateItem({ itemId: editPlaceModal._id, placeName: name, placeCategory: placeForm.category, placeAddress: address, placeLat: lat, placeLng: lng, placeMapLink: placeForm.mapLink || undefined, time: placeForm.time || undefined });
                    setEditPlaceModal(null);
                    setSaving(false);
-                }} disabled={saving || !placeForm.name.trim()}>
+                }} disabled={saving || (!placeForm.name.trim() && !placeForm.mapLink.trim())}>
                   {saving ? <span className="spinner" /> : "저장"}
                 </button>
               </div>
