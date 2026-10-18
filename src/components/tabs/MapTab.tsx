@@ -53,6 +53,25 @@ export default function MapTab({ trip }: { trip: any }) {
   const isMapExpandedRef = useRef(isMapExpanded);
   useEffect(() => { isMapExpandedRef.current = isMapExpanded; }, [isMapExpanded]);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [sheetThumbCollapsed, setSheetThumbCollapsed] = useState(false);
+  const sheetDragStartYRef = useRef<number | null>(null);
+
+  // 새 핀을 선택할 때마다 하단 시트 썸네일을 기본값(펼침)으로 리셋
+  useEffect(() => { if (focusedId) setSheetThumbCollapsed(false); }, [focusedId]);
+
+  // 하단 시트 상단 손잡이를 아래로 살짝 끌면 썸네일만 접히고, 위로 끌면 다시 펼쳐짐
+  function handleSheetHandlePointerDown(e: React.PointerEvent) {
+    sheetDragStartYRef.current = e.clientY;
+  }
+  function handleSheetHandlePointerMove(e: React.PointerEvent) {
+    if (sheetDragStartYRef.current === null) return;
+    const delta = e.clientY - sheetDragStartYRef.current;
+    if (delta > 24) { setSheetThumbCollapsed(true); sheetDragStartYRef.current = null; }
+    else if (delta < -24) { setSheetThumbCollapsed(false); sheetDragStartYRef.current = null; }
+  }
+  function handleSheetHandlePointerUp() {
+    sheetDragStartYRef.current = null;
+  }
 
   // 모달 입력창 구글 자동완성 (매번 모달이 열릴 때마다 새롭게 바인딩하여 오류 방지)
   useEffect(() => {
@@ -476,7 +495,12 @@ export default function MapTab({ trip }: { trip: any }) {
                   display: "flex", flexDirection: "column",
                   pointerEvents: (sheetPlace || sheetAccommodation) ? "auto" : "none",
                 }}>
-                  <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px", flexShrink: 0 }}>
+                  <div
+                    onPointerDown={handleSheetHandlePointerDown}
+                    onPointerMove={handleSheetHandlePointerMove}
+                    onPointerUp={handleSheetHandlePointerUp}
+                    onPointerCancel={handleSheetHandlePointerUp}
+                    style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px", flexShrink: 0, cursor: "grab", touchAction: "none" }}>
                     <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.15)" }} />
                   </div>
                   <div style={{ overflowY: "auto", padding: "6px 18px 18px" }}>
@@ -488,6 +512,15 @@ export default function MapTab({ trip }: { trip: any }) {
                         </div>
                         <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 4, color: "#1a1a1a" }}>{sheetAccommodation.name}</div>
                         {sheetAccommodation.address && <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: 8 }}>📍 {sheetAccommodation.address}</p>}
+                        {apiKey && (
+                          <div style={{ maxHeight: sheetThumbCollapsed ? 0 : 150, overflow: "hidden", transition: "max-height 0.3s ease", marginBottom: sheetThumbCollapsed ? 0 : 8 }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`/api/place-thumbnail?name=${encodeURIComponent(sheetAccommodation.name)}${sheetAccommodation.lat && sheetAccommodation.lng ? `&lat=${sheetAccommodation.lat}&lng=${sheetAccommodation.lng}` : ""}`}
+                              alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block", borderRadius: 10, cursor: "zoom-in" }}
+                              onClick={e => setLightboxUrl(e.currentTarget.src)}
+                              onError={e => { e.currentTarget.style.display = "none"; }} />
+                          </div>
+                        )}
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button className="btn-ghost" style={{ fontSize: "0.78rem", fontWeight: 700 }}
                             onClick={() => openScheduleModal({ ...sheetAccommodation, category: "accommodation" })}>📅 일정 포함</button>
@@ -508,6 +541,15 @@ export default function MapTab({ trip }: { trip: any }) {
                         </div>
                         <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 4, color: "#1a1a1a" }}>{sheetPlace.name}</div>
                         {sheetPlace.address && <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: 8 }}>📍 {sheetPlace.address}</p>}
+                        {apiKey && (
+                          <div style={{ maxHeight: sheetThumbCollapsed ? 0 : 150, overflow: "hidden", transition: "max-height 0.3s ease", marginBottom: sheetThumbCollapsed ? 0 : 8 }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={`/api/place-thumbnail?name=${encodeURIComponent(sheetPlace.name)}${sheetPlace.lat && sheetPlace.lng ? `&lat=${sheetPlace.lat}&lng=${sheetPlace.lng}` : ""}`}
+                              alt="" loading="lazy" style={{ width: "100%", height: 150, objectFit: "cover", display: "block", borderRadius: 10, cursor: "zoom-in" }}
+                              onClick={e => setLightboxUrl(e.currentTarget.src)}
+                              onError={e => { e.currentTarget.style.display = "none"; }} />
+                          </div>
+                        )}
                         {sheetPlace.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 8, padding: "8px", background: "rgba(0,0,0,0.03)", borderRadius: 8 }}>{sheetPlace.notes}</p>}
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <button className="btn-ghost" style={{ fontSize: "0.78rem", fontWeight: 700 }}
@@ -579,7 +621,7 @@ export default function MapTab({ trip }: { trip: any }) {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {/* 숙소 목록 */}
-            {(focusedId ? accommodations.filter(a => a._id === focusedId) : (selectedCat === "all" || selectedCat === "accommodation") ? accommodations : []).map(a => (
+            {((selectedCat === "all" || selectedCat === "accommodation") ? accommodations : []).map(a => (
               <div key={a._id} id={`map-card-${a._id}`} className="glass glass-hover" style={{
                 cursor: "pointer",
                 background: "#ffffff",
@@ -619,7 +661,7 @@ export default function MapTab({ trip }: { trip: any }) {
             ))}
 
             {/* 장소 목록 */}
-            {(focusedId ? places.filter(p => p._id === focusedId) : places.filter(p => selectedCat === "all" || p.category === selectedCat)).map(p => {
+            {places.filter(p => selectedCat === "all" || p.category === selectedCat).map(p => {
               const cat = CATEGORIES.find(c => c.id === p.category);
               return (
                 <div key={p._id} id={`map-card-${p._id}`} className="glass glass-hover" style={{ cursor: "pointer", background: "#ffffff", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}
