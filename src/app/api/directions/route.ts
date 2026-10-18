@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
         end: { lat: s.endLocation?.latLng?.latitude, lng: s.endLocation?.latLng?.longitude },
       }))
     );
+    // 구간(leg)별 step 개수 - origin→경유지1, 경유지1→경유지2, ... 순서. "몇 번째 장소로 가는 중"을 수동 선택할 때
+    // 몇 번째 step부터가 그 구간인지 프론트에서 계산할 수 있도록 함께 내려줌
+    const legStepCounts = (route.legs || []).map((leg: any) => (leg.steps || []).length);
 
     return NextResponse.json({
       ok: true,
@@ -60,6 +63,7 @@ export async function POST(req: NextRequest) {
       durationSeconds: route.duration ? parseInt(route.duration.replace("s", "")) : undefined,
       distanceMeters: route.distanceMeters,
       steps,
+      legStepCounts,
     });
   } catch (e) {
     console.warn("directions route failed", e);

@@ -285,7 +285,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     day: any; dayLabel: string; places: any[]; path: { lat: number; lng: number }[];
     distanceMeters?: number; durationSeconds?: number;
     steps: { maneuver: string; instruction: string; distanceMeters: number; durationSeconds: number; start: { lat: number; lng: number }; end: { lat: number; lng: number } }[];
+    legStartStepIdx: number[]; // legStartStepIdx[i] = places[i]→places[i+1] 구간이 시작되는 step 인덱스
   } | null>(null);
+  const [manualStepIdx, setManualStepIdx] = useState<number | null>(null);
   const navMapRef = useRef<HTMLDivElement>(null);
   const navMapInstanceRef = useRef<any>(null);
   const navWatchIdRef = useRef<number | null>(null);
@@ -295,6 +297,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [navAutoFollow, setNavAutoFollow] = useState(true);
   const navAutoFollowRef = useRef(true);
   useEffect(() => { navAutoFollowRef.current = navAutoFollow; }, [navAutoFollow]);
+  const manualStepIdxRef = useRef<number | null>(null);
+  useEffect(() => { manualStepIdxRef.current = manualStepIdx; }, [manualStepIdx]);
   const [navMapType, setNavMapType] = useState<"roadmap" | "satellite">("roadmap");
   const [navHeadingMode, setNavHeadingMode] = useState(false);
   const [navHeading, setNavHeading] = useState(0);
@@ -561,7 +565,16 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         setNavError(data.error || "경로를 불러오지 못했습니다.");
         return;
       }
+      // legStepCounts를 누적합으로 변환해서, "몇 번째 장소로 가는 중"을 고르면 그 구간의 시작 step 인덱스를 바로 찾을 수 있게 함
+      const legStartStepIdx: number[] = [];
+      let cum = 0;
+      for (const count of (data.legStepCounts || [])) {
+        legStartStepIdx.push(cum);
+        cum += count;
+      }
+
       setNavAutoFollow(true);
+      setManualStepIdx(null);
       setNavProgress(data.steps?.length ? { stepIdx: 0, remainingDistanceM: data.distanceMeters || 0, remainingDurationS: data.durationSeconds || 0 } : null);
       setNavData({
         day,
@@ -571,6 +584,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         distanceMeters: data.distanceMeters,
         durationSeconds: data.durationSeconds,
         steps: data.steps || [],
+        legStartStepIdx,
       });
 
       // 고도 그래프용 데이터는 별도로 비동기 조회 (실패해도 내비게이션 자체에는 영향 없음)
@@ -603,6 +617,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setNavProgress(null);
     setNavHeadingMode(false);
     setNavHeading(0);
+    setManualStepIdx(null);
   }
 
   // 재조준 버튼: 평소엔 "나를 중심으로" 추적을 다시 켜고, 이미 추적 중일 때 한 번 더 누르면
@@ -622,9 +637,19 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         const heading = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? (360 - e.alpha) % 360 : null);
         if (heading != null && !isNaN(heading)) {
           setNavHeading(heading);
-          // 지도 자체는 회전시키지 않고(구글맵 캔버스를 CSS로 회전시키면 경로 폴리라인이 사라지는 렌더링 버그가 있었음),
-          // 대신 "나" 마커를 화살표 아이콘으로 만들어 보고 있는 방향을 가리키도록 회전시킴
-          if (navMeMarkerRef.current) {
+          const map = navMapInstanceRef.current;
+          // Map ID가 설정되어 벡터 렌더링 중이면 구글맵 공식 기능(setHeading)으로 지도 자체를 회전시킴.
+          // (예전엔 CSS로 지도를 통째로 회전시켰는데, 그러면 경로 폴리라인이 사라지는 렌더링 버그가 있었음.
+          //  setHeading은 구글이 직접 지원하는 방식이라 폴리라인/마커가 전부 같이, 정상적으로 회전함)
+          if (map && map.getRenderingType && map.getRenderingType() === "VECTOR") {
+            map.setHeading(heading);
+            // 지도 자체가 회전하므로 화살표는 항상 "위(진행 방향)"를 가리키면 됨
+            if (navMeMarkerRef.current) {
+              const icon = navMeMarkerRef.current.getIcon();
+              navMeMarkerRef.current.setIcon({ ...icon, rotation: 0 });
+            }
+          } else if (navMeMarkerRef.current) {
+            // Map ID가 없어 벡터 렌더링이 안 되는 경우: 지도는 북쪽 고정으로 두고, 화살표 마커만 방향을 가리키도록 회전 (대체 동작)
             const icon = navMeMarkerRef.current.getIcon();
             navMeMarkerRef.current.setIcon({ ...icon, rotation: heading });
           }
@@ -641,8 +666,13 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       setNavHeadingMode(false);
       setNavHeading(0);
       setNavAutoFollow(true);
-      if (navMeMarkerRef.current && navMapInstanceRef.current) {
-        navMapInstanceRef.current.panTo(navMeMarkerRef.current.getPosition());
+      if (navMapInstanceRef.current?.getRenderingType?.() === "VECTOR") {
+        navMapInstanceRef.current.setHeading(0);
+      }
+      if (navMeMarkerRef.current) {
+        const icon = navMeMarkerRef.current.getIcon();
+        navMeMarkerRef.current.setIcon({ ...icon, rotation: 0 });
+        navMapInstanceRef.current?.panTo(navMeMarkerRef.current.getPosition());
       }
     }
   }
@@ -661,6 +691,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     const google = (window as any).google;
     if (!google?.maps) return;
 
+    // 나침반 모드에서 지도 자체를 회전시키려면 벡터 렌더링(Map ID)이 필요함 - 없으면 "나" 마커 화살표만 회전하는 방식으로 자동 대체됨
+    const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
     const map = new google.maps.Map(navMapRef.current, {
       center: navData.path[0] || { lat: navData.places[0].placeLat, lng: navData.places[0].placeLng },
       zoom: 17,
@@ -670,6 +702,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       mapTypeControl: false,
       zoomControl: false,
       disableDefaultUI: true,
+      ...(mapId ? { mapId } : {}),
     });
     navMapInstanceRef.current = map;
 
@@ -708,13 +741,20 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           }
           if (navAutoFollowRef.current) map.panTo(me);
 
-          // 현재 위치와 가장 가까운 구간을 "현재 안내 구간"으로 판단
+          // 현재 안내 구간: 수동으로 "몇 번째 장소로 가는 중"을 선택했다면 그 값을 그대로 쓰고,
+          // 아니면(자동 모드) 현재 위치와 가장 가까운 구간을 자동으로 판단함 (GPS가 부정확하거나 실제 위치와 다를 때 수동 선택이 우선함)
           if (navData.steps.length > 0) {
-            let bestIdx = 0, bestDist = Infinity;
-            navData.steps.forEach((s, i) => {
-              const d = distanceToSegmentMeters(me, s.start, s.end);
-              if (d < bestDist) { bestDist = d; bestIdx = i; }
-            });
+            let bestIdx: number;
+            if (manualStepIdxRef.current !== null) {
+              bestIdx = manualStepIdxRef.current;
+            } else {
+              bestIdx = 0;
+              let bestDist = Infinity;
+              navData.steps.forEach((s, i) => {
+                const d = distanceToSegmentMeters(me, s.start, s.end);
+                if (d < bestDist) { bestDist = d; bestIdx = i; }
+              });
+            }
             const current = navData.steps[bestIdx];
             const distToStepEnd = haversineMeters(me, current.end);
             const fracRemaining = current.distanceMeters > 0 ? Math.min(1, distToStepEnd / current.distanceMeters) : 0;
@@ -1431,6 +1471,35 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
               <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>{navRemainingDistanceM < 1000 ? `${Math.round(navRemainingDistanceM)}m` : `${(navRemainingDistanceM / 1000).toFixed(1)}km`}</span>
               <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", fontWeight: 600 }}>{navEtaLabel} 도착</span>
             </div>
+            {navData && navData.places.length > 1 && (
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: elevLinePoints.length > 1 ? 4 : 0 }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳:</span>
+                {navData.places.slice(1).map((p: any, idx: number) => {
+                  const placeNum = idx + 2; // 지도 마커 번호(1부터)와 맞춤; 이 배열은 places[1]부터 시작하므로 +2
+                  const legIdx = idx; // places[idx+1]로 향하는 구간 = legStartStepIdx[idx]
+                  const legStepStart = navData.legStartStepIdx[legIdx] ?? 0;
+                  const currentLegIdx = (() => {
+                    const stepIdx = navProgress?.stepIdx ?? 0;
+                    let li = 0;
+                    navData.legStartStepIdx.forEach((start, i) => { if (stepIdx >= start) li = i; });
+                    return li;
+                  })();
+                  const active = currentLegIdx === legIdx;
+                  return (
+                    <button key={p._id} onClick={() => setManualStepIdx(legStepStart)}
+                      style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: active ? "#2563eb" : "rgba(0,0,0,0.06)", color: active ? "#fff" : "var(--text-secondary)" }}>
+                      {placeNum}. {p.placeName}
+                    </button>
+                  );
+                })}
+                {manualStepIdx !== null && (
+                  <button onClick={() => setManualStepIdx(null)}
+                    style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(245,158,11,0.15)", color: "var(--warning)" }}>
+                    📍 자동으로
+                  </button>
+                )}
+              </div>
+            )}
             {elevLinePoints.length > 1 && (
               <>
                 <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2, display: "flex", alignItems: "center", gap: 4 }}>
