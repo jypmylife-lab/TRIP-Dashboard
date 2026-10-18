@@ -91,36 +91,54 @@ const MANEUVER_INFO: Record<string, { label: string; rotation: number }> = {
   UNKNOWN_MANEUVER: { label: "직진", rotation: 0 },
 };
 
-// 클릭 가능한 5점 별점 위젯 (0~10점, 0.5점 단위 = 별 1개당 2점, 왼쪽 반/오른쪽 반 클릭으로 0.5점 단위 선택)
-function StarRating({ score, onChange, size = 20, readOnly = false }: { score: number; onChange?: (score: number) => void; size?: number; readOnly?: boolean }) {
+// 10점 만점 별점 위젯 (별 10개, 별 1개당 1점). 탭 한 번으로 바로 선택되고,
+// 별 위를 눌러서 드래그하면 손가락을 뗄 때까지 미리보기가 따라오는, 리뷰 앱에서 흔히 쓰는 "드래그로 선택" 방식.
+function StarRating({ score, onChange, size = 16, readOnly = false }: { score: number; onChange?: (score: number) => void; size?: number; readOnly?: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dragScore, setDragScore] = useState<number | null>(null);
+  const displayScore = dragScore !== null ? dragScore : score;
+
+  function scoreFromClientX(clientX: number): number | null {
+    const el = containerRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0) return null;
+    const idx = Math.ceil(((clientX - rect.left) / rect.width) * 10);
+    return Math.max(1, Math.min(10, idx));
+  }
+
+  function handlePointerDown(e: React.PointerEvent) {
+    if (readOnly || !onChange) return;
+    const s = scoreFromClientX(e.clientX);
+    if (s !== null) setDragScore(s);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }
+  function handlePointerMove(e: React.PointerEvent) {
+    if (readOnly || !onChange || dragScore === null) return;
+    const s = scoreFromClientX(e.clientX);
+    if (s !== null) setDragScore(s);
+  }
+  function handlePointerUp() {
+    if (readOnly || !onChange || dragScore === null) return;
+    onChange(dragScore);
+    setDragScore(null);
+  }
+
   return (
-    <div style={{ display: "inline-flex", gap: 1 }}>
-      {[1, 2, 3, 4, 5].map((i) => {
-        const starValue = score - (i - 1) * 2; // 이 별 하나에 해당하는 값 (0~2)
-        const fillPct = Math.max(0, Math.min(1, starValue / 2)) * 100; // 0%, 50%, 100%
+    <div
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => setDragScore(null)}
+      style={{ display: "inline-flex", gap: 1, touchAction: readOnly ? undefined : "none", cursor: readOnly ? "default" : "pointer" }}>
+      {Array.from({ length: 10 }, (_, idx) => idx + 1).map((i) => {
+        const filled = displayScore >= i;
         return (
-          <div key={i} style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-            {/* 빈 별 (배경) */}
-            <svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "absolute", top: 0, left: 0 }}>
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="rgba(0,0,0,0.12)" />
-            </svg>
-            {/* 채워진 별 (0%/50%/100%로 클리핑) */}
-            <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPct}%`, height: size, overflow: "hidden" }}>
-              <svg width={size} height={size} viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="var(--warning)" />
-              </svg>
-            </div>
-            {!readOnly && onChange && (
-              <>
-                <button type="button" onClick={() => onChange((i - 1) * 2 + 1)}
-                  style={{ position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                  aria-label={`${(i - 1) * 2 + 1}점`} />
-                <button type="button" onClick={() => onChange(i * 2)}
-                  style={{ position: "absolute", top: 0, right: 0, width: "50%", height: "100%", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                  aria-label={`${i * 2}점`} />
-              </>
-            )}
-          </div>
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" style={{ pointerEvents: "none" }}>
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+              fill={filled ? "var(--warning)" : "rgba(0,0,0,0.12)"} />
+          </svg>
         );
       })}
     </div>
@@ -1014,14 +1032,14 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             return (
                                               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                  <StarRating score={myScore} onChange={(s) => handleRate(item, s)} size={18} />
+                                                  <StarRating score={myScore} onChange={(s) => handleRate(item, s)} size={15} />
                                                   <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>{myScore > 0 ? `내 평점 ${myScore.toFixed(1)}` : "별점 매기기"}</span>
                                                 </div>
                                                 {others.length > 0 && (
                                                   <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 2 }}>
                                                     {others.map((r: any) => (
                                                       <div key={r.nickname} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                        <StarRating score={r.score} readOnly size={14} />
+                                                        <StarRating score={r.score} readOnly size={11} />
                                                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{r.nickname} · {r.score.toFixed(1)}</span>
                                                       </div>
                                                     ))}
