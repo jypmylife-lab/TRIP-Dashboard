@@ -105,6 +105,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const polylineRefs = useRef<any[]>([]);
   const myLocationMarkerRef = useRef<any>(null);
   const lastPosRef = useRef<{lat: number, lng: number} | null>(null);
+  const directionsRendererRef = useRef<any>(null);
+  const [routeDayId, setRouteDayId] = useState<string | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState("");
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
@@ -305,8 +309,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         markersRef.current.push(marker);
       });
 
-      // 날짜별 개별 경로 그리기 (날짜 간 연결되지 않도록)
-      if (dayPath.length > 1) {
+      // 날짜별 개별 경로 그리기 (날짜 간 연결되지 않도록). 실제 도보 경로가 표시 중인 날짜는 직선 대신 그쪽에 맡김
+      if (dayPath.length > 1 && dayId !== routeDayId) {
         const poly = new google.maps.Polyline({
           path: dayPath,
           geodesic: true,
@@ -340,7 +344,51 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         google.maps.event.removeListener(listener);
       });
     }
-  }, [mapInstance, allItems, expandedDays, days, focusedDayId]);
+  }, [mapInstance, allItems, expandedDays, days, focusedDayId, routeDayId]);
+
+  // 실제 도보 경로 보기 (선택한 DAY만)
+  useEffect(() => {
+    if (!mapInstance) return;
+    const google = (window as any).google;
+    if (!directionsRendererRef.current) {
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        suppressMarkers: true,
+        preserveViewport: true,
+        polylineOptions: { strokeColor: "#f43f5e", strokeWeight: 5, strokeOpacity: 0.9 },
+      });
+    }
+    const renderer = directionsRendererRef.current;
+
+    if (!routeDayId) { renderer.setMap(null); setRouteError(""); return; }
+
+    const dayPlaces = (allItems || [])
+      .filter((it: any) => it.dayId === routeDayId && it.type === "place" && it.placeLat && it.placeLng)
+      .sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+
+    if (dayPlaces.length < 2) { renderer.setMap(null); return; }
+
+    setRouteLoading(true);
+    setRouteError("");
+    const service = new google.maps.DirectionsService();
+    service.route({
+      origin: { lat: dayPlaces[0].placeLat, lng: dayPlaces[0].placeLng },
+      destination: { lat: dayPlaces[dayPlaces.length - 1].placeLat, lng: dayPlaces[dayPlaces.length - 1].placeLng },
+      waypoints: dayPlaces.slice(1, -1).map((p: any) => ({ location: { lat: p.placeLat, lng: p.placeLng }, stopover: true })),
+      travelMode: google.maps.TravelMode.WALKING,
+    }, (result: any, status: string) => {
+      setRouteLoading(false);
+      if (status === "OK") {
+        renderer.setMap(mapInstance);
+        renderer.setDirections(result);
+      } else {
+        renderer.setMap(null);
+        console.warn("도보 경로 요청 실패:", status);
+        setRouteError(status === "REQUEST_DENIED"
+          ? "경로 기능을 쓰려면 Google Cloud 프로젝트에서 Directions API를 활성화해주세요."
+          : "경로를 불러오지 못했습니다.");
+      }
+    });
+  }, [mapInstance, routeDayId, allItems]);
 
   function toggleDay(dayId: string) {
     setExpandedDays(prev => {
@@ -552,12 +600,29 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {dayItems.filter((it: any) => it.placeLat && it.placeLng).length >= 2 && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        setFocusedDayId(day._id);
+                        setRouteDayId(curr => curr === day._id ? null : day._id);
+                      }} style={{
+                        padding: "3px 8px", borderRadius: 999, fontSize: "0.68rem", fontWeight: 800, border: "none", cursor: "pointer",
+                        background: routeDayId === day._id ? "var(--danger)" : "rgba(0,0,0,0.06)",
+                        color: routeDayId === day._id ? "#fff" : "var(--text-secondary)",
+                      }}>
+                        {routeDayId === day._id ? (routeLoading ? "로딩중..." : "🧭 경로 끄기") : "🧭 경로 보기"}
+                      </button>
+                    )}
                     <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
                       <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
                     </div>
                   </div>
                 </div>
+
+                {routeDayId === day._id && routeError && (
+                  <div style={{ padding: "8px 20px", fontSize: "0.76rem", color: "var(--danger)", background: "rgba(248,113,113,0.08)" }}>⚠️ {routeError}</div>
+                )}
 
                 {/* DAY 내용 */}
                 {isExpanded && (

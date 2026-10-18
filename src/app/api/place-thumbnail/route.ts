@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+// GET /api/place-thumbnail?name=오사카성&lat=34.68&lng=135.52
+// 장소의 구글 첫 번째 사진으로 리다이렉트 (없으면 404)
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const name = searchParams.get("name");
+  const lat = searchParams.get("lat");
+  const lng = searchParams.get("lng");
+
+  if (!API_KEY || !name) {
+    return NextResponse.json({ error: "name is required" }, { status: 400 });
+  }
+
+  try {
+    let findUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(name)}&inputtype=textquery&fields=photos&key=${API_KEY}`;
+    if (lat && lng) findUrl += `&locationbias=point:${lat},${lng}`;
+
+    const res = await fetch(findUrl);
+    const data = await res.json();
+    const photoRef = data.candidates?.[0]?.photos?.[0]?.photo_reference;
+
+    if (!photoRef) {
+      return NextResponse.json({ error: "no photo found" }, { status: 404 });
+    }
+
+    const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=300&photo_reference=${photoRef}&key=${API_KEY}`;
+    return NextResponse.redirect(photoUrl);
+  } catch (e) {
+    console.warn("place-thumbnail failed", e);
+    return NextResponse.json({ error: "thumbnail lookup failed" }, { status: 500 });
+  }
+}

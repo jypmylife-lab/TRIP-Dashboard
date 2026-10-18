@@ -507,6 +507,12 @@ export default function MapTab({ trip }: { trip: any }) {
                   <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                     onClick={(e) => { e.stopPropagation(); openScheduleModal({ ...a, category: "accommodation" }); }}>📅 일정 포함</button>
                 </div>
+                {apiKey && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={`/api/place-thumbnail?name=${encodeURIComponent(a.name)}${a.lat && a.lng ? `&lat=${a.lat}&lng=${a.lng}` : ""}`}
+                    alt="" loading="lazy" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
+                    onError={e => { e.currentTarget.style.display = "none"; }} />
+                )}
                 <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{a.name}</div>
                   {a.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {a.address}</p>}
@@ -540,6 +546,12 @@ export default function MapTab({ trip }: { trip: any }) {
                         onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
                     </div>
                   </div>
+                  {apiKey && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/place-thumbnail?name=${encodeURIComponent(p.name)}${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}` : ""}`}
+                      alt="" loading="lazy" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
+                      onError={e => { e.currentTarget.style.display = "none"; }} />
+                  )}
                   <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{p.name}</div>
                     {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {p.address}</p>}
