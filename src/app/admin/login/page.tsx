@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) { setError(data.error); return; }
-    sessionStorage.setItem("adminToken", data.token);
+    localStorage.setItem("adminToken", data.token);
     router.push("/admin");
   }
 

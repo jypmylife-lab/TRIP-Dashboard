@@ -40,7 +40,7 @@ export default function AdminPage() {
   const updateTrip = useMutation(api.trips.update);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (!token) { router.push("/admin/login"); return; }
     setIsAuth(true);
   }, [router]);
@@ -105,7 +105,7 @@ export default function AdminPage() {
             <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>관리자 전용 — 전체 여행 목록</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <button className="btn-ghost" style={{ fontSize: "0.8rem", padding: "8px 12px" }} onClick={() => { sessionStorage.removeItem("adminToken"); router.push("/admin/login"); }}>로그아웃</button>
+            <button className="btn-ghost" style={{ fontSize: "0.8rem", padding: "8px 12px" }} onClick={() => { localStorage.removeItem("adminToken"); router.push("/admin/login"); }}>로그아웃</button>
             <button className="btn-primary" style={{ fontSize: "0.85rem", padding: "8px 14px" }} onClick={openCreateModal}>
               + 새 여행
             </button>

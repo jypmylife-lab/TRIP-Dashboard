@@ -36,7 +36,7 @@ export default function TripPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken");
     if (token) setIsAdmin(true);
     const saved = localStorage.getItem(`nickname_${shareId}`);
     if (saved) setNickname(saved);

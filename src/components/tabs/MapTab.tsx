@@ -7,6 +7,8 @@ const CATEGORIES = [
   { id: "accommodation", label: "숙소", emoji: "🏨" },
   { id: "food", label: "음식", emoji: "🍜" },
   { id: "cafe", label: "카페", emoji: "☕" },
+  { id: "dessert", label: "디저트", emoji: "🍰" },
+  { id: "bar", label: "술집", emoji: "🍻" },
   { id: "attraction", label: "관광", emoji: "🏛️" },
   { id: "shopping", label: "쇼핑", emoji: "🛍️" },
   { id: "transport", label: "교통", emoji: "🚌" },
@@ -27,6 +29,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const [saving, setSaving] = useState(false);
   const [mapError, setMapError] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
+  const [resolvingLink, setResolvingLink] = useState(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -35,7 +38,6 @@ export default function MapTab({ trip }: { trip: any }) {
   const formNameInputRef = useRef<HTMLInputElement>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
-  const infoWindowRef = useRef<any>(null);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -71,26 +73,6 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }, [showForm, mapInstance]);
 
-  // 리스너 등록 (정보창 닫기)
-  useEffect(() => {
-    const handleClose = () => {
-      if (infoWindowRef.current) infoWindowRef.current.close();
-    };
-    window.addEventListener('closeGMapInfoWindow', handleClose);
-    return () => window.removeEventListener('closeGMapInfoWindow', handleClose);
-  }, []);
-
-  // 지도 핀의 정보창에서 위치명 클릭 시, 아래 목록에 해당 장소만 필터링해서 보여줌
-  useEffect(() => {
-    const handleViewDetail = (e: Event) => {
-      const id = (e as CustomEvent).detail as string;
-      if (infoWindowRef.current) infoWindowRef.current.close();
-      setFocusedId(id);
-    };
-    window.addEventListener('viewMapCardDetail', handleViewDetail);
-    return () => window.removeEventListener('viewMapCardDetail', handleViewDetail);
-  }, []);
-
   // 필터링된 장소가 바뀌면 해당 카드로 스크롤 이동
   useEffect(() => {
     if (!focusedId) return;
@@ -114,7 +96,6 @@ export default function MapTab({ trip }: { trip: any }) {
           mapTypeControl: false,
         });
         setMapInstance(map);
-        infoWindowRef.current = new google.maps.InfoWindow();
       }
     }
 
@@ -147,28 +128,10 @@ export default function MapTab({ trip }: { trip: any }) {
     const bounds = new google.maps.LatLngBounds();
     let hasPoints = false;
 
-    // 마커 클릭 리스너 헬퍼
-    const addMarkerListener = (marker: any, content: string, id: string) => {
+    // 마커 클릭 리스너 헬퍼: 팝업 없이 바로 아래 목록에서 해당 장소만 보여줌
+    const addMarkerListener = (marker: any, id: string) => {
       marker.addListener("click", () => {
-        if (infoWindowRef.current) {
-          infoWindowRef.current.setContent(`
-            <div style="padding: 0; min-width: 180px; font-family: sans-serif; overflow: hidden; border-radius: 12px;">
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                <span
-                  onclick="window.dispatchEvent(new CustomEvent('viewMapCardDetail', { detail: '${id}' }))"
-                  style="font-weight: 700; font-size: 0.9rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; cursor: pointer;"
-                >
-                  ${content}
-                </span>
-                <div
-                  onclick="window.dispatchEvent(new CustomEvent('closeGMapInfoWindow'))"
-                  style="background: #e2e8f0; border: none; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 14px; font-weight: bold; flex-shrink: 0;"
-                >✕</div>
-              </div>
-            </div>
-          `);
-          infoWindowRef.current.open(mapInstance, marker);
-        }
+        setFocusedId(id);
       });
     };
     
@@ -182,7 +145,7 @@ export default function MapTab({ trip }: { trip: any }) {
           position: pos, map: mapInstance, title: a.name,
           icon: "https://maps.google.com/mapfiles/ms/icons/purple-dot.png"
         });
-        addMarkerListener(marker, `🏨 ${a.name}`, a._id);
+        addMarkerListener(marker, a._id);
         markersRef.current.push(marker);
         bounds.extend(pos);
         hasPoints = true;
@@ -209,16 +172,17 @@ export default function MapTab({ trip }: { trip: any }) {
         if (p.lat && p.lng) {
           const pos = { lat: p.lat, lng: p.lng };
           let color = "red-dot";
-          let emoji = "📌";
-          if (p.category === "food") { color = "orange-dot"; emoji = "🍜"; }
-          else if (p.category === "shopping") { color = "pink-dot"; emoji = "🛍️"; }
-          else if (p.category === "attraction") { color = "blue-dot"; emoji = "🏛️"; }
+          if (p.category === "food") color = "orange-dot";
+          else if (p.category === "shopping") color = "pink-dot";
+          else if (p.category === "attraction") color = "blue-dot";
+          else if (p.category === "dessert") color = "yellow-dot";
+          else if (p.category === "bar") color = "green-dot";
           
           const marker = new google.maps.Marker({
             position: pos, map: mapInstance, title: p.name,
             icon: `https://maps.google.com/mapfiles/ms/icons/${color}.png`
           });
-          addMarkerListener(marker, `${emoji} ${p.name}`, p._id);
+          addMarkerListener(marker, p._id);
           markersRef.current.push(marker);
           bounds.extend(pos);
           hasPoints = true;
@@ -337,6 +301,26 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }
 
+  // 구글 지도 링크 입력란에서 포커스를 벗어나면 이름/주소를 자동으로 채워줌 (이미 입력된 값은 덮어쓰지 않음)
+  async function handleMapLinkBlur() {
+    if (!form.mapLink.startsWith("http")) return;
+    setResolvingLink(true);
+    try {
+      const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(form.mapLink)}`);
+      const data = await res.json();
+      if (data.lat && data.lng) setTempLatLng({ lat: data.lat, lng: data.lng });
+      setForm(f => ({
+        ...f,
+        name: f.name || data.name || f.name,
+        address: f.address || data.address || f.address,
+      }));
+    } catch (e) {
+      console.warn("지도 링크 자동완성 실패", e);
+    } finally {
+      setResolvingLink(false);
+    }
+  }
+
   function handleEdit(p: any) {
     setForm({ name: p.name || "", address: p.address || "", mapLink: p.mapLink || "", category: p.category || "attraction", notes: p.notes || "" });
     setEditingId(p._id);
@@ -382,16 +366,9 @@ export default function MapTab({ trip }: { trip: any }) {
 
       {/* 지도 표시 */}
       <div style={{ position: "relative" }}>
-        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: isMapExpanded ? 380 : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
+        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
           {apiKey ? (
             <>
-              <style>{`
-                .gm-style-iw-c { padding: 0 !important; border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; }
-                .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
-                .gm-style-iw-tc { display: none !important; } /* 말풍선 꼬리 숨김(선선택) or 유지 선택가능 */
-                .gm-ui-hover-effect { display: none !important; }
-                .gm-style-iw-chr { display: none !important; height: 0 !important; } /* 구글 기본 닫기 버튼 영역이 남겨두는 빈 공간 제거 */
-              `}</style>
               <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
               
               {/* 검색창 제거됨 */}
@@ -546,7 +523,13 @@ export default function MapTab({ trip }: { trip: any }) {
             {mapError && <p style={{ color: "var(--danger)", fontSize: "0.82rem", marginBottom: 12 }}>{mapError}</p>}
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div><label>장소 이름 *</label><input ref={formNameInputRef} className="input" placeholder="예: 도톤보리 (검색 시 자동완성)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required /></div>
-              <div><label>구글 지도 링크 (선택)</label><input className="input" placeholder="https://maps.app.goo.gl/..." value={form.mapLink} onChange={e => setForm(f => ({ ...f, mapLink: e.target.value }))} /></div>
+              <div>
+                <label>구글 지도 링크 (선택)</label>
+                <input className="input" placeholder="https://maps.app.goo.gl/..." value={form.mapLink}
+                  onChange={e => setForm(f => ({ ...f, mapLink: e.target.value }))}
+                  onBlur={handleMapLinkBlur} />
+                {resolvingLink && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>🔎 이름/주소 자동완성 중...</p>}
+              </div>
               <div><label>주소 (선택)</label><input className="input" placeholder="주소 직접 입력 가능" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
 
               <div>

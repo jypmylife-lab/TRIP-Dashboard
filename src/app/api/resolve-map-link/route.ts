@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       const lngMatch = finalUrl.match(/!4d(-?\d+\.\d+)/);
       if (latMatch && lngMatch) {
         lat = parseFloat(latMatch[1]);
-        lng = parseFloat(lngMatch[2]);
+        lng = parseFloat(lngMatch[1]);
       }
     }
 
@@ -82,10 +82,33 @@ export async function GET(req: NextRequest) {
        }
     }
 
-    return NextResponse.json({ 
-      finalUrl, 
+    // 장소 이름: 리다이렉트된 URL 경로(/maps/place/이름/...)에서 바로 추출 (API 호출 불필요)
+    let name: string | null = null;
+    const nameMatch = finalUrl.match(/\/maps\/place\/([^/]+)\//);
+    if (nameMatch) {
+      name = decodeURIComponent(nameMatch[1].replace(/\+/g, " "));
+    }
+
+    // 주소: 좌표를 알아냈다면 역지오코딩으로 주소까지 같이 채워줌
+    let address: string | null = null;
+    if (lat !== undefined && !isNaN(lat) && lng !== undefined && !isNaN(lng) && API_KEY) {
+      try {
+        const revRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}`);
+        const revData = await revRes.json();
+        if (revData.results?.length > 0) {
+          address = revData.results[0].formatted_address;
+        }
+      } catch (e) {
+        console.warn("Reverse geocoding failed:", e);
+      }
+    }
+
+    return NextResponse.json({
+      finalUrl,
       lat: (lat !== undefined && !isNaN(lat)) ? lat : null,
-      lng: (lng !== undefined && !isNaN(lng)) ? lng : null
+      lng: (lng !== undefined && !isNaN(lng)) ? lng : null,
+      name,
+      address,
     });
   } catch (err: any) {
     console.error('Link resolution failed:', err);
