@@ -50,6 +50,8 @@ export default function MapTab({ trip }: { trip: any }) {
   const markersRef = useRef<any[]>([]);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const isMapExpandedRef = useRef(isMapExpanded);
+  useEffect(() => { isMapExpandedRef.current = isMapExpanded; }, [isMapExpanded]);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
   // 모달 입력창 구글 자동완성 (매번 모달이 열릴 때마다 새롭게 바인딩하여 오류 방지)
@@ -83,12 +85,20 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }, [showForm, mapInstance]);
 
-  // 필터링된 장소가 바뀌면 해당 카드로 스크롤 이동
+  // 필터링된 장소가 바뀌면 해당 카드로 스크롤 이동 (지도가 확대된 상태에서는 하단 시트로 보여주므로 스크롤하지 않음)
   useEffect(() => {
-    if (!focusedId) return;
+    if (!focusedId || isMapExpandedRef.current) return;
     const el = document.getElementById(`map-card-${focusedId}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [focusedId]);
+
+  // 지도가 확대된 상태에서 빈 영역을 클릭하면 하단 시트를 닫음
+  useEffect(() => {
+    if (!mapInstance) return;
+    const google = (window as any).google;
+    const listener = google.maps.event.addListener(mapInstance, "click", () => setFocusedId(null));
+    return () => google.maps.event.removeListener(listener);
+  }, [mapInstance]);
 
   // 구글 맵스 API 로드 및 초기화
   useEffect(() => {
@@ -138,10 +148,15 @@ export default function MapTab({ trip }: { trip: any }) {
     const bounds = new google.maps.LatLngBounds();
     let hasPoints = false;
 
-    // 마커 클릭 리스너 헬퍼: 팝업 없이 바로 아래 목록에서 해당 장소만 보여줌
-    const addMarkerListener = (marker: any, id: string) => {
+    // 마커 클릭 리스너 헬퍼: 지도가 확대된 상태면 핀을 중앙으로 부드럽게 이동 + 하단 시트로 표시,
+    // 아닌 상태면 기존처럼 아래 목록에서 해당 카드로 스크롤
+    const addMarkerListener = (marker: any, id: string, pos: { lat: number; lng: number }) => {
       marker.addListener("click", () => {
         setFocusedId(id);
+        if (isMapExpandedRef.current && mapInstance) {
+          mapInstance.panTo(pos);
+          if (mapInstance.getZoom() < 16) mapInstance.setZoom(16);
+        }
       });
     };
     
@@ -155,7 +170,7 @@ export default function MapTab({ trip }: { trip: any }) {
           position: pos, map: mapInstance, title: a.name,
           icon: "https://maps.google.com/mapfiles/ms/icons/purple-dot.png"
         });
-        addMarkerListener(marker, a._id);
+        addMarkerListener(marker, a._id, pos);
         markersRef.current.push(marker);
         bounds.extend(pos);
         hasPoints = true;
@@ -193,7 +208,7 @@ export default function MapTab({ trip }: { trip: any }) {
             position: pos, map: mapInstance, title: p.name,
             icon: `https://maps.google.com/mapfiles/ms/icons/${color}.png`
           });
-          addMarkerListener(marker, p._id);
+          addMarkerListener(marker, p._id, pos);
           markersRef.current.push(marker);
           bounds.extend(pos);
           hasPoints = true;
@@ -403,6 +418,10 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }
 
+  const sheetAccommodation = focusedId ? accommodations?.find(a => a._id === focusedId) : null;
+  const sheetPlace = focusedId ? places?.find(p => p._id === focusedId) : null;
+  const sheetCat = sheetPlace ? CATEGORIES.find(c => c.id === sheetPlace.category) : null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -442,6 +461,71 @@ export default function MapTab({ trip }: { trip: any }) {
                   <line x1="18" y1="12" x2="22" y2="12" />
                 </svg>
               </button>
+
+              {/* 확대된 지도에서 핀 클릭 시 올라오는 하단 시트 (네이버 지도 스타일) */}
+              {isMapExpanded && (
+                <div onClick={e => e.stopPropagation()} style={{
+                  position: "absolute", left: 0, right: 0, bottom: 0,
+                  maxHeight: "52%",
+                  background: "#ffffff",
+                  borderTopLeftRadius: 22, borderTopRightRadius: 22,
+                  boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
+                  transform: (sheetPlace || sheetAccommodation) ? "translateY(0)" : "translateY(100%)",
+                  transition: "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+                  zIndex: 15,
+                  display: "flex", flexDirection: "column",
+                  pointerEvents: (sheetPlace || sheetAccommodation) ? "auto" : "none",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px", flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.15)" }} />
+                  </div>
+                  <div style={{ overflowY: "auto", padding: "6px 18px 18px" }}>
+                    {sheetAccommodation && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "var(--text-secondary)" }}>🏨 숙소</span>
+                          <button onClick={() => setFocusedId(null)} style={{ background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", color: "var(--text-secondary)" }}>✕</button>
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 4, color: "#1a1a1a" }}>{sheetAccommodation.name}</div>
+                        {sheetAccommodation.address && <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: 8 }}>📍 {sheetAccommodation.address}</p>}
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <button className="btn-ghost" style={{ fontSize: "0.78rem", fontWeight: 700 }}
+                            onClick={() => openScheduleModal({ ...sheetAccommodation, category: "accommodation" })}>📅 일정 포함</button>
+                          {(sheetAccommodation.lat && sheetAccommodation.lng) || sheetAccommodation.address ? (
+                            <a href={`https://maps.google.com/?q=${sheetAccommodation.lat ? sheetAccommodation.lat + ',' + sheetAccommodation.lng : encodeURIComponent(sheetAccommodation.address || sheetAccommodation.name)}`} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center" }}>
+                              🔗 구글 지도에서 보기
+                            </a>
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                    {sheetPlace && (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <span style={{ fontSize: "0.78rem", fontWeight: 800, color: "var(--text-secondary)" }}>{sheetCat?.emoji} {sheetCat?.label}</span>
+                          <button onClick={() => setFocusedId(null)} style={{ background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", color: "var(--text-secondary)" }}>✕</button>
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: "1rem", marginBottom: 4, color: "#1a1a1a" }}>{sheetPlace.name}</div>
+                        {sheetPlace.address && <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: 8 }}>📍 {sheetPlace.address}</p>}
+                        {sheetPlace.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", marginBottom: 8, padding: "8px", background: "rgba(0,0,0,0.03)", borderRadius: 8 }}>{sheetPlace.notes}</p>}
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                          <button className="btn-ghost" style={{ fontSize: "0.78rem", fontWeight: 700 }}
+                            onClick={() => openScheduleModal(sheetPlace)}>📅 일정 포함</button>
+                          <button className="btn-ghost" style={{ fontSize: "0.78rem", fontWeight: 700 }}
+                            onClick={() => handleEdit(sheetPlace)}>수정</button>
+                          {(sheetPlace.mapLink || (sheetPlace.lat && sheetPlace.lng)) ? (
+                            <a href={sheetPlace.mapLink || `https://maps.google.com/?q=${sheetPlace.lat},${sheetPlace.lng}`} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: "0.78rem", color: "var(--accent)", fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center" }}>
+                              🔗 구글 지도에서 보기
+                            </a>
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", gap: 12 }}>
