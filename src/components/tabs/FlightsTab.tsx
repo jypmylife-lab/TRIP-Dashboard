@@ -151,6 +151,8 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                     <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontWeight: 500 }}>📝 {f.notes}</span>
                   </div>
                 )}
+
+                {f.flightNumber && <FlightGateInfo flightNumber={f.flightNumber} />}
               </div>
               );
             })}
@@ -210,6 +212,57 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 실시간 게이트/터미널 조회 (AviationStack) - 출발 당일에 가까워져야 데이터가 채워짐
+function FlightGateInfo({ flightNumber }: { flightNumber: string }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  async function handleCheck(e: React.MouseEvent) {
+    e.stopPropagation();
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`/api/flight-status?flightNumber=${encodeURIComponent(flightNumber)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "조회 실패");
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || "조회 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ padding: "10px 18px 14px", borderTop: "2px dashed rgba(0,0,0,0.06)" }} onClick={e => e.stopPropagation()}>
+      {!result && (
+        <button onClick={handleCheck} disabled={loading}
+          style={{ width: "100%", padding: "8px", fontSize: "0.8rem", fontWeight: 700, color: "var(--accent)", background: "rgba(99,102,241,0.06)", border: "none", borderRadius: 8, cursor: loading ? "default" : "pointer" }}>
+          {loading ? <span className="spinner" /> : "🛫 실시간 게이트/터미널 조회"}
+        </button>
+      )}
+      {error && (
+        <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: "0.76rem", color: "var(--text-muted)" }}>
+          <span>⚠️ {error}</span>
+          <button onClick={handleCheck} style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>다시 시도</button>
+        </div>
+      )}
+      {result && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>출발 터미널 · 게이트</div>
+            <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.departure.terminal || "-"} · {result.departure.gate || "-"}</div>
+          </div>
+          <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>도착 터미널 · 게이트</div>
+            <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.arrival.terminal || "-"} · {result.arrival.gate || "-"}</div>
           </div>
         </div>
       )}

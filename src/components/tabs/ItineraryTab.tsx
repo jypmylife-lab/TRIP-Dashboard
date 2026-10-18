@@ -17,6 +17,32 @@ const CATEGORIES = [
   { id: "other", label: "기타", emoji: "📌" },
 ];
 
+// 구글 인코딩 폴리라인 디코딩 (표준 알고리즘, 외부 라이브러리 불필요)
+function decodePolyline(encoded: string): { lat: number; lng: number }[] {
+  const points: { lat: number; lng: number }[] = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    shift = 0; result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
 function getDaysBetween(start: string, end: string) {
   const days: { dayNumber: number; date: string; weekday: string }[] = [];
   const s = new Date(start);
@@ -105,7 +131,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const polylineRefs = useRef<any[]>([]);
   const myLocationMarkerRef = useRef<any>(null);
   const lastPosRef = useRef<{lat: number, lng: number} | null>(null);
-  const directionsRendererRef = useRef<any>(null);
+  const routePolylineRef = useRef<any>(null);
   const [routeDayId, setRouteDayId] = useState<string | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState("");
@@ -346,48 +372,58 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     }
   }, [mapInstance, allItems, expandedDays, days, focusedDayId, routeDayId]);
 
-  // 실제 도보 경로 보기 (선택한 DAY만)
+  // 실제 도보 경로 보기 (선택한 DAY만) - 신규 Routes API 기반 /api/directions 호출
   useEffect(() => {
     if (!mapInstance) return;
     const google = (window as any).google;
-    if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new google.maps.DirectionsRenderer({
-        suppressMarkers: true,
-        preserveViewport: true,
-        polylineOptions: { strokeColor: "#f43f5e", strokeWeight: 5, strokeOpacity: 0.9 },
-      });
-    }
-    const renderer = directionsRendererRef.current;
 
-    if (!routeDayId) { renderer.setMap(null); setRouteError(""); return; }
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setMap(null);
+      routePolylineRef.current = null;
+    }
+
+    if (!routeDayId) { setRouteError(""); return; }
 
     const dayPlaces = (allItems || [])
       .filter((it: any) => it.dayId === routeDayId && it.type === "place" && it.placeLat && it.placeLng)
       .sort((a: any, b: any) => a.orderIndex - b.orderIndex);
 
-    if (dayPlaces.length < 2) { renderer.setMap(null); return; }
+    if (dayPlaces.length < 2) return;
 
     setRouteLoading(true);
     setRouteError("");
-    const service = new google.maps.DirectionsService();
-    service.route({
-      origin: { lat: dayPlaces[0].placeLat, lng: dayPlaces[0].placeLng },
-      destination: { lat: dayPlaces[dayPlaces.length - 1].placeLat, lng: dayPlaces[dayPlaces.length - 1].placeLng },
-      waypoints: dayPlaces.slice(1, -1).map((p: any) => ({ location: { lat: p.placeLat, lng: p.placeLng }, stopover: true })),
-      travelMode: google.maps.TravelMode.WALKING,
-    }, (result: any, status: string) => {
-      setRouteLoading(false);
-      if (status === "OK") {
-        renderer.setMap(mapInstance);
-        renderer.setDirections(result);
-      } else {
-        renderer.setMap(null);
-        console.warn("도보 경로 요청 실패:", status);
-        setRouteError(status === "REQUEST_DENIED"
-          ? "경로 기능을 쓰려면 Google Cloud 프로젝트에서 Directions API를 활성화해주세요."
-          : "경로를 불러오지 못했습니다.");
-      }
-    });
+    let cancelled = false;
+
+    fetch("/api/directions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        origin: { lat: dayPlaces[0].placeLat, lng: dayPlaces[0].placeLng },
+        destination: { lat: dayPlaces[dayPlaces.length - 1].placeLat, lng: dayPlaces[dayPlaces.length - 1].placeLng },
+        waypoints: dayPlaces.slice(1, -1).map((p: any) => ({ lat: p.placeLat, lng: p.placeLng })),
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled) return;
+        setRouteLoading(false);
+        if (!data.ok || !data.encodedPolyline) {
+          setRouteError(data.error || "경로를 불러오지 못했습니다.");
+          return;
+        }
+        const path = decodePolyline(data.encodedPolyline);
+        routePolylineRef.current = new google.maps.Polyline({
+          path, geodesic: true, strokeColor: "#f43f5e", strokeWeight: 5, strokeOpacity: 0.9, map: mapInstance,
+        });
+      })
+      .catch(e => {
+        if (cancelled) return;
+        setRouteLoading(false);
+        console.warn("도보 경로 요청 실패:", e);
+        setRouteError("경로를 불러오지 못했습니다.");
+      });
+
+    return () => { cancelled = true; };
   }, [mapInstance, routeDayId, allItems]);
 
   function toggleDay(dayId: string) {

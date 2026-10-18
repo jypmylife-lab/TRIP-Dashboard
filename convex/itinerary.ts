@@ -147,6 +147,7 @@ export const updateItem = mutation({
     time: v.optional(v.string()),
     photos: v.optional(v.array(v.string())),
     orderIndex: v.optional(v.number()),
+    ratings: v.optional(v.array(v.object({ nickname: v.string(), score: v.number() }))),
   },
   handler: async (ctx, args) => {
     const { itemId, ...fields } = args;
