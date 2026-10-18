@@ -44,6 +44,53 @@ function decodePolyline(encoded: string): { lat: number; lng: number }[] {
   return points;
 }
 
+// 두 지점 사이의 거리(m) - 작은 규모(도보 경로)에서 충분히 정확한 haversine 공식
+function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const la1 = a.lat * Math.PI / 180, la2 = b.lat * Math.PI / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// 현재 위치에서 각 구간(step)까지의 수직 거리 - 가장 가까운 구간을 "현재 구간"으로 판단하는 데 사용
+// (작은 규모의 도보 경로이므로 위도 기준 평면 근사로 충분)
+function distanceToSegmentMeters(p: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const cosLat = Math.cos(a.lat * Math.PI / 180);
+  const toXY = (pt: { lat: number; lng: number }) => ({ x: (pt.lng - a.lng) * cosLat, y: pt.lat - a.lat });
+  const A = toXY(a), B = toXY(b), P = toXY(p);
+  const dx = B.x - A.x, dy = B.y - A.y;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((P.x - A.x) * dx + (P.y - A.y) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const closest = { lat: a.lat + t * (b.lat - a.lat), lng: a.lng + t * (b.lng - a.lng) };
+  return haversineMeters(p, closest);
+}
+
+// 내비게이션 안내 유형(maneuver) -> 한국어 라벨 + 화살표 회전각
+const MANEUVER_INFO: Record<string, { label: string; rotation: number }> = {
+  DEPART: { label: "출발", rotation: 0 },
+  STRAIGHT: { label: "직진", rotation: 0 },
+  TURN_SLIGHT_LEFT: { label: "완만한 좌회전", rotation: -30 },
+  TURN_LEFT: { label: "왼쪽 방향", rotation: -90 },
+  TURN_SHARP_LEFT: { label: "급좌회전", rotation: -120 },
+  TURN_SLIGHT_RIGHT: { label: "완만한 우회전", rotation: 30 },
+  TURN_RIGHT: { label: "오른쪽 방향", rotation: 90 },
+  TURN_SHARP_RIGHT: { label: "급우회전", rotation: 120 },
+  U_TURN_LEFT: { label: "유턴", rotation: 180 },
+  U_TURN_RIGHT: { label: "유턴", rotation: 180 },
+  FORK_LEFT: { label: "왼쪽 갈림길", rotation: -45 },
+  FORK_RIGHT: { label: "오른쪽 갈림길", rotation: 45 },
+  MERGE: { label: "합류", rotation: 0 },
+  ROUNDABOUT_LEFT: { label: "회전교차로 (좌측)", rotation: -45 },
+  ROUNDABOUT_RIGHT: { label: "회전교차로 (우측)", rotation: 45 },
+  ARRIVE: { label: "목적지 도착", rotation: 0 },
+  ARRIVE_LEFT: { label: "목적지 도착 (좌측)", rotation: 0 },
+  ARRIVE_RIGHT: { label: "목적지 도착 (우측)", rotation: 0 },
+  UNKNOWN_MANEUVER: { label: "직진", rotation: 0 },
+};
+
 function getDaysBetween(start: string, end: string) {
   const days: { dayNumber: number; date: string; weekday: string }[] = [];
   const s = new Date(start);
@@ -135,11 +182,21 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [navLoadingDayId, setNavLoadingDayId] = useState<string | null>(null);
   const [navError, setNavError] = useState("");
-  const [navData, setNavData] = useState<{ dayLabel: string; places: any[]; path: { lat: number; lng: number }[]; distanceMeters?: number; durationSeconds?: number } | null>(null);
+  const [navData, setNavData] = useState<{
+    day: any; dayLabel: string; places: any[]; path: { lat: number; lng: number }[];
+    distanceMeters?: number; durationSeconds?: number;
+    steps: { maneuver: string; instruction: string; distanceMeters: number; durationSeconds: number; start: { lat: number; lng: number }; end: { lat: number; lng: number } }[];
+  } | null>(null);
   const navMapRef = useRef<HTMLDivElement>(null);
   const navMapInstanceRef = useRef<any>(null);
   const navWatchIdRef = useRef<number | null>(null);
   const navMeMarkerRef = useRef<any>(null);
+  const [elevationPoints, setElevationPoints] = useState<{ elevation: number; lat: number; lng: number }[]>([]);
+  const [navProgress, setNavProgress] = useState<{ stepIdx: number; remainingDistanceM: number; remainingDurationS: number } | null>(null);
+  const [navAutoFollow, setNavAutoFollow] = useState(true);
+  const navAutoFollowRef = useRef(true);
+  useEffect(() => { navAutoFollowRef.current = navAutoFollow; }, [navAutoFollow]);
+  const [navMapType, setNavMapType] = useState<"roadmap" | "satellite">("roadmap");
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
@@ -402,13 +459,24 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         setNavError(data.error || "경로를 불러오지 못했습니다.");
         return;
       }
+      setNavAutoFollow(true);
+      setNavProgress(data.steps?.length ? { stepIdx: 0, remainingDistanceM: data.distanceMeters || 0, remainingDurationS: data.durationSeconds || 0 } : null);
       setNavData({
+        day,
         dayLabel: `DAY ${day.dayNumber}`,
         places: dayPlaces,
         path: decodePolyline(data.encodedPolyline),
         distanceMeters: data.distanceMeters,
         durationSeconds: data.durationSeconds,
+        steps: data.steps || [],
       });
+
+      // 고도 그래프용 데이터는 별도로 비동기 조회 (실패해도 내비게이션 자체에는 영향 없음)
+      setElevationPoints([]);
+      fetch(`/api/elevation?polyline=${encodeURIComponent(data.encodedPolyline)}&samples=40`)
+        .then(r => r.json())
+        .then(elev => { if (elev.ok) setElevationPoints(elev.points); })
+        .catch(() => {});
     } catch (e) {
       console.warn("도보 경로 요청 실패:", e);
       setNavError("경로를 불러오지 못했습니다.");
@@ -425,6 +493,23 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     navMapInstanceRef.current = null;
     navMeMarkerRef.current = null;
     setNavData(null);
+    setElevationPoints([]);
+    setNavProgress(null);
+  }
+
+  function handleRecenterNavigation() {
+    setNavAutoFollow(true);
+    if (navMeMarkerRef.current && navMapInstanceRef.current) {
+      navMapInstanceRef.current.panTo(navMeMarkerRef.current.getPosition());
+    }
+  }
+
+  function handleToggleNavMapType() {
+    setNavMapType(prev => {
+      const next = prev === "roadmap" ? "satellite" : "roadmap";
+      navMapInstanceRef.current?.setMapTypeId(next);
+      return next;
+    });
   }
 
   // 내비게이션 전체화면 지도 초기화: 경로 + 장소 마커를 그리고, 내 실시간 위치를 계속 따라가며 중심을 맞춤
@@ -463,7 +548,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     navData.path.forEach((pt) => bounds.extend(pt));
     map.fitBounds(bounds);
 
-    // 실시간 내 위치 추적: 움직일 때마다 파란 점을 갱신하고 지도를 따라오게 함 ("내가 중심" 모드)
+    // 사용자가 직접 지도를 움직이면 "내가 중심" 자동 추적을 잠시 멈춤 (재조준 버튼으로 다시 켤 수 있음)
+    const dragListener = google.maps.event.addListener(map, "dragstart", () => setNavAutoFollow(false));
+
+    // 실시간 내 위치 추적: 움직일 때마다 파란 점을 갱신하고, 현재 구간(안내 배너)·남은 거리/시간을 갱신
     if (navigator.geolocation) {
       navWatchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
@@ -477,7 +565,26 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           } else {
             navMeMarkerRef.current.setPosition(me);
           }
-          map.panTo(me);
+          if (navAutoFollowRef.current) map.panTo(me);
+
+          // 현재 위치와 가장 가까운 구간을 "현재 안내 구간"으로 판단
+          if (navData.steps.length > 0) {
+            let bestIdx = 0, bestDist = Infinity;
+            navData.steps.forEach((s, i) => {
+              const d = distanceToSegmentMeters(me, s.start, s.end);
+              if (d < bestDist) { bestDist = d; bestIdx = i; }
+            });
+            const current = navData.steps[bestIdx];
+            const distToStepEnd = haversineMeters(me, current.end);
+            const fracRemaining = current.distanceMeters > 0 ? Math.min(1, distToStepEnd / current.distanceMeters) : 0;
+            let remainingDistanceM = distToStepEnd;
+            let remainingDurationS = current.durationSeconds * fracRemaining;
+            for (let i = bestIdx + 1; i < navData.steps.length; i++) {
+              remainingDistanceM += navData.steps[i].distanceMeters;
+              remainingDurationS += navData.steps[i].durationSeconds;
+            }
+            setNavProgress({ stepIdx: bestIdx, remainingDistanceM, remainingDurationS });
+          }
         },
         (err) => console.warn("내비게이션 GPS 추적 실패", err),
         { enableHighAccuracy: true }
@@ -489,6 +596,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         navigator.geolocation.clearWatch(navWatchIdRef.current);
         navWatchIdRef.current = null;
       }
+      google.maps.event.removeListener(dragListener);
       navMeMarkerRef.current = null;
     };
   }, [navData]);
@@ -619,6 +727,39 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   if (days === undefined || allItems === undefined) {
     return <div style={{ textAlign: "center", padding: 60 }}><span className="spinner" style={{ margin: "0 auto", width: 32, height: 32 }} /></div>;
   }
+
+  // 내비게이션 전체화면용 파생 값: 현재 안내 구간, 남은 거리/시간, 도착 예정 시각, 고도 그래프 진행률
+  const navCurrentStep = navData && navProgress ? navData.steps[navProgress.stepIdx] : null;
+  const navManeuver = navCurrentStep ? (MANEUVER_INFO[navCurrentStep.maneuver] || MANEUVER_INFO.UNKNOWN_MANEUVER) : null;
+  const navDistToTurn = navCurrentStep && navProgress
+    ? (navProgress.stepIdx === navData!.steps.length - 1 ? navProgress.remainingDistanceM : navProgress.remainingDistanceM - navData!.steps.slice(navProgress.stepIdx + 1).reduce((s, st) => s + st.distanceMeters, 0))
+    : 0;
+  const navRemainingDistanceM = navProgress ? navProgress.remainingDistanceM : navData?.distanceMeters || 0;
+  const navRemainingDurationS = navProgress ? navProgress.remainingDurationS : navData?.durationSeconds || 0;
+  const navEtaLabel = (() => {
+    const eta = new Date(Date.now() + navRemainingDurationS * 1000);
+    return eta.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
+  })();
+  const navProgressFraction = navData?.distanceMeters ? Math.max(0, Math.min(1, 1 - navRemainingDistanceM / navData.distanceMeters)) : 0;
+
+  // 고도 그래프 좌표 계산 (SVG viewBox 320x70 기준)
+  const ELEV_W = 320, ELEV_H = 70, ELEV_PAD = 6;
+  let elevLinePoints: { x: number; y: number }[] = [];
+  let elevMin = 0, elevMax = 0;
+  if (elevationPoints.length > 1) {
+    elevMin = Math.min(...elevationPoints.map(p => p.elevation));
+    elevMax = Math.max(...elevationPoints.map(p => p.elevation));
+    const range = Math.max(1, elevMax - elevMin);
+    elevLinePoints = elevationPoints.map((p, i) => ({
+      x: (i / (elevationPoints.length - 1)) * ELEV_W,
+      y: ELEV_PAD + (1 - (p.elevation - elevMin) / range) * (ELEV_H - ELEV_PAD * 2),
+    }));
+  }
+  const elevPathD = elevLinePoints.length ? "M" + elevLinePoints.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L") : "";
+  const elevProgressX = navProgressFraction * ELEV_W;
+  const elevProgressIdx = elevLinePoints.length ? Math.round(navProgressFraction * (elevLinePoints.length - 1)) : 0;
+  const elevProgressY = elevLinePoints[elevProgressIdx]?.y ?? ELEV_H / 2;
+  const elevTraveledPathD = elevLinePoints.length ? "M" + elevLinePoints.slice(0, elevProgressIdx + 1).map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L") : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1015,18 +1156,76 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
       {navData && (
         <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f172a", display: "flex", flexDirection: "column" }}>
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 16px", background: "linear-gradient(rgba(0,0,0,0.55), transparent)" }}>
-            <div style={{ color: "#fff" }}>
-              <div style={{ fontWeight: 900, fontSize: "1.05rem" }}>🧭 {navData.dayLabel} 경로</div>
-              <div style={{ fontSize: "0.78rem", opacity: 0.85, marginTop: 2 }}>
-                {navData.distanceMeters ? `${(navData.distanceMeters / 1000).toFixed(1)}km` : ""}
-                {navData.durationSeconds ? ` · 도보 약 ${Math.round(navData.durationSeconds / 60)}분` : ""}
-              </div>
+          {/* 상단 턴바이턴 안내 배너 */}
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 14px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ color: "#fff", fontSize: "0.8rem", fontWeight: 800, opacity: 0.85 }}>🧭 {navData.dayLabel} 경로</span>
+              <button onClick={handleCloseNavigation}
+                style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1.1rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
             </div>
-            <button onClick={handleCloseNavigation}
-              style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1.2rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
+            {navManeuver && (
+              <div style={{ background: "#2563eb", borderRadius: 18, padding: "16px 18px", display: "flex", alignItems: "center", gap: 16, boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transform: `rotate(${navManeuver.rotation}deg)` }}>
+                    <path d="M12 19V5" /><path d="M6 11l6-6 6 6" />
+                  </svg>
+                </div>
+                <div style={{ color: "#fff" }}>
+                  <div style={{ fontSize: "1.25rem", fontWeight: 900 }}>{navManeuver.label}</div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
+                    {navDistToTurn < 1000 ? `${Math.round(navDistToTurn)}m` : `${(navDistToTurn / 1000).toFixed(1)}km`}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
           <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
+
+          {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준 / 경로 새로고침 */}
+          <div style={{ position: "absolute", right: 14, top: navManeuver ? 164 : 70, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+            <button onClick={handleToggleNavMapType} title="지도 유형"
+              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
+              {navMapType === "satellite" ? "🛰️" : "🗺️"}
+            </button>
+            <button onClick={handleRecenterNavigation} title="내 위치로"
+              style={{ width: 44, height: 44, borderRadius: "50%", background: navAutoFollow ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="12" cy="12" r="7" strokeOpacity="0.4" /><circle cx="12" cy="12" r="2" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
+              </svg>
+            </button>
+            <button onClick={() => navData && handleStartNavigation(navData.day)} title="경로 새로고침"
+              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
+              🔄
+            </button>
+          </div>
+
+          {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 */}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "10px 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.15)" }} />
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: "1.3rem", fontWeight: 900, color: "#2563eb" }}>{Math.max(1, Math.round(navRemainingDurationS / 60))}분</span>
+              <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>{navRemainingDistanceM < 1000 ? `${Math.round(navRemainingDistanceM)}m` : `${(navRemainingDistanceM / 1000).toFixed(1)}km`}</span>
+              <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", fontWeight: 600 }}>{navEtaLabel} 도착</span>
+            </div>
+            {elevLinePoints.length > 1 && (
+              <>
+                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                  고도 그래프 (m)
+                </div>
+                <svg viewBox={`0 0 ${ELEV_W} ${ELEV_H}`} width="100%" height={ELEV_H} preserveAspectRatio="none">
+                  <path d={elevPathD} fill="none" stroke="#93c5fd" strokeWidth="2.5" />
+                  {elevTraveledPathD && <path d={elevTraveledPathD} fill="none" stroke="#34d399" strokeWidth="2.5" />}
+                  <circle cx={elevLinePoints[0].x} cy={elevLinePoints[0].y} r="4" fill="#fff" stroke="#34d399" strokeWidth="2.5" />
+                  <circle cx={elevLinePoints[elevLinePoints.length - 1].x} cy={elevLinePoints[elevLinePoints.length - 1].y} r="4" fill="#f43f5e" />
+                  <circle cx={elevProgressX} cy={elevProgressY} r="4.5" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
+                </svg>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

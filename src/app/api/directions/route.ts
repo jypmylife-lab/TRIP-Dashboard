@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": API_KEY,
-        "X-Goog-FieldMask": "routes.polyline.encodedPolyline,routes.duration,routes.distanceMeters",
+        "X-Goog-FieldMask": "routes.polyline.encodedPolyline,routes.duration,routes.distanceMeters,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,routes.legs.steps.startLocation,routes.legs.steps.endLocation",
       },
       body: JSON.stringify({
         origin: toWaypoint(origin),
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
         intermediates: (waypoints || []).map(toWaypoint),
         travelMode: "WALK",
         polylineQuality: "OVERVIEW",
+        languageCode: "ko",
       }),
     });
 
@@ -42,11 +43,23 @@ export async function POST(req: NextRequest) {
     }
 
     const route = data.routes[0];
+    const steps = (route.legs || []).flatMap((leg: any) =>
+      (leg.steps || []).map((s: any) => ({
+        maneuver: s.navigationInstruction?.maneuver || "UNKNOWN_MANEUVER",
+        instruction: s.navigationInstruction?.instructions || "",
+        distanceMeters: s.distanceMeters || 0,
+        durationSeconds: s.staticDuration ? parseInt(s.staticDuration.replace("s", "")) : 0,
+        start: { lat: s.startLocation?.latLng?.latitude, lng: s.startLocation?.latLng?.longitude },
+        end: { lat: s.endLocation?.latLng?.latitude, lng: s.endLocation?.latLng?.longitude },
+      }))
+    );
+
     return NextResponse.json({
       ok: true,
       encodedPolyline: route.polyline?.encodedPolyline,
       durationSeconds: route.duration ? parseInt(route.duration.replace("s", "")) : undefined,
       distanceMeters: route.distanceMeters,
+      steps,
     });
   } catch (e) {
     console.warn("directions route failed", e);
