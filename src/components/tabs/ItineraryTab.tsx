@@ -197,6 +197,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const navAutoFollowRef = useRef(true);
   useEffect(() => { navAutoFollowRef.current = navAutoFollow; }, [navAutoFollow]);
   const [navMapType, setNavMapType] = useState<"roadmap" | "satellite">("roadmap");
+  const [navHeadingMode, setNavHeadingMode] = useState(false);
+  const [navHeading, setNavHeading] = useState(0);
+  const navHeadingListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
@@ -490,17 +493,50 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       navigator.geolocation.clearWatch(navWatchIdRef.current);
       navWatchIdRef.current = null;
     }
+    if (navHeadingListenerRef.current) {
+      window.removeEventListener("deviceorientation", navHeadingListenerRef.current);
+      navHeadingListenerRef.current = null;
+    }
     navMapInstanceRef.current = null;
     navMeMarkerRef.current = null;
     setNavData(null);
     setElevationPoints([]);
     setNavProgress(null);
+    setNavHeadingMode(false);
+    setNavHeading(0);
   }
 
-  function handleRecenterNavigation() {
-    setNavAutoFollow(true);
-    if (navMeMarkerRef.current && navMapInstanceRef.current) {
-      navMapInstanceRef.current.panTo(navMeMarkerRef.current.getPosition());
+  // 재조준 버튼: 평소엔 "나를 중심으로" 추적을 다시 켜고, 이미 추적 중일 때 한 번 더 누르면
+  // 나침반 방향에 맞춰 지도 자체가 회전하는 "진행방향 모드"를 켬 (일반 내비게이션 앱과 동일한 동작)
+  async function handleRecenterNavigation() {
+    if (navAutoFollow && !navHeadingMode) {
+      const DOE: any = (window as any).DeviceOrientationEvent;
+      if (DOE && typeof DOE.requestPermission === "function") {
+        try {
+          const permission = await DOE.requestPermission();
+          if (permission !== "granted") return;
+        } catch {
+          return;
+        }
+      }
+      const handler = (e: any) => {
+        const heading = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? (360 - e.alpha) % 360 : null);
+        if (heading != null && !isNaN(heading)) setNavHeading(heading);
+      };
+      navHeadingListenerRef.current = handler;
+      window.addEventListener("deviceorientation", handler);
+      setNavHeadingMode(true);
+    } else {
+      if (navHeadingListenerRef.current) {
+        window.removeEventListener("deviceorientation", navHeadingListenerRef.current);
+        navHeadingListenerRef.current = null;
+      }
+      setNavHeadingMode(false);
+      setNavHeading(0);
+      setNavAutoFollow(true);
+      if (navMeMarkerRef.current && navMapInstanceRef.current) {
+        navMapInstanceRef.current.panTo(navMeMarkerRef.current.getPosition());
+      }
     }
   }
 
@@ -544,9 +580,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       });
     });
 
-    const bounds = new google.maps.LatLngBounds();
-    navData.path.forEach((pt) => bounds.extend(pt));
-    map.fitBounds(bounds);
+    // 전체 경로가 다 보이도록 축소하지 않고, 실제 내비게이션처럼 내 위치 기준으로 가깝게 확대된 상태를 유지함 (zoom: 17)
 
     // 사용자가 직접 지도를 움직이면 "내가 중심" 자동 추적을 잠시 멈춤 (재조준 버튼으로 다시 켤 수 있음)
     const dragListener = google.maps.event.addListener(map, "dragstart", () => setNavAutoFollow(false));
@@ -1181,19 +1215,34 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             )}
           </div>
 
-          <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
+          <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+            <div style={{
+              width: "100%", height: "100%",
+              transform: navHeadingMode ? `rotate(${-navHeading}deg) scale(1.6)` : "none",
+              transformOrigin: "center center",
+              transition: "transform 0.2s linear",
+            }}>
+              <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
+            </div>
+          </div>
 
-          {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준 / 경로 새로고침 */}
+          {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
           <div style={{ position: "absolute", right: 14, top: navManeuver ? 164 : 70, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={handleToggleNavMapType} title="지도 유형"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
               {navMapType === "satellite" ? "🛰️" : "🗺️"}
             </button>
-            <button onClick={handleRecenterNavigation} title="내 위치로"
-              style={{ width: 44, height: 44, borderRadius: "50%", background: navAutoFollow ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2.5" strokeLinecap="round">
-                <circle cx="12" cy="12" r="7" strokeOpacity="0.4" /><circle cx="12" cy="12" r="2" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
-              </svg>
+            <button onClick={handleRecenterNavigation} title={navHeadingMode ? "나침반 모드 끄기" : navAutoFollow ? "나침반 모드 켜기" : "내 위치로"}
+              style={{ width: 44, height: 44, borderRadius: "50%", background: navHeadingMode ? "#f59e0b" : navAutoFollow ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {navHeadingMode ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2l3 7-3 13-3-13z" fill="#fff" stroke="none" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="7" strokeOpacity="0.4" /><circle cx="12" cy="12" r="2" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
+                </svg>
+              )}
             </button>
             <button onClick={() => navData && handleStartNavigation(navData.day)} title="경로 새로고침"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>

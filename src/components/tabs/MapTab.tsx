@@ -491,7 +491,8 @@ export default function MapTab({ trip }: { trip: any }) {
                   boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
                   transform: (sheetPlace || sheetAccommodation) ? "translateY(0)" : "translateY(100%)",
                   transition: "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
-                  zIndex: 15,
+                  zIndex: 120, // 모바일 하단 고정 탭바(.tab-nav-wrapper, z-index:100)보다 위에 오도록
+
                   display: "flex", flexDirection: "column",
                   pointerEvents: (sheetPlace || sheetAccommodation) ? "auto" : "none",
                 }}>
