@@ -365,7 +365,8 @@ export default function MapTab({ trip }: { trip: any }) {
     }
   }
 
-  // 구글 지도 링크 입력란에서 포커스를 벗어나면 이름/주소를 자동으로 채워줌 (이미 입력된 값은 덮어쓰지 않음)
+  // 구글 지도 링크 입력란에서 포커스를 벗어나면 이름/주소를 자동으로 채워줌
+  // 링크가 바뀔 때마다 새로 조회한 값으로 항상 교체함 (다른 링크로 바꿔 넣으면 정보도 같이 새로 바뀌어야 하므로)
   async function handleMapLinkBlur() {
     if (!form.mapLink.startsWith("http")) return;
     setResolvingLink(true);
@@ -375,8 +376,8 @@ export default function MapTab({ trip }: { trip: any }) {
       if (data.lat && data.lng) setTempLatLng({ lat: data.lat, lng: data.lng });
       setForm(f => ({
         ...f,
-        name: f.name || data.name || f.name,
-        address: f.address || data.address || f.address,
+        name: data.name || f.name,
+        address: data.address || f.address,
       }));
     } catch (e) {
       console.warn("지도 링크 자동완성 실패", e);
@@ -472,7 +473,7 @@ export default function MapTab({ trip }: { trip: any }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
-        <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
+        <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
       </div>
 
       {/* 지도 표시 */}
@@ -768,7 +769,7 @@ export default function MapTab({ trip }: { trip: any }) {
               </div>
               <div><label>메모</label><input className="input" placeholder="메모 (선택)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowForm(false)}>취소</button>
+                <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); }}>취소</button>
                 <button type="submit" className="btn-primary" style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
                   {saving ? <span className="spinner" /> : "저장"}
                 </button>

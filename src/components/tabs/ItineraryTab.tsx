@@ -279,6 +279,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const lastPosRef = useRef<{lat: number, lng: number} | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [navLoadingDayId, setNavLoadingDayId] = useState<string | null>(null);
+  const [showNavDayPicker, setShowNavDayPicker] = useState(false);
   const [navError, setNavError] = useState("");
   const [navData, setNavData] = useState<{
     day: any; dayLabel: string; places: any[]; path: { lat: number; lng: number }[];
@@ -619,7 +620,15 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       }
       const handler = (e: any) => {
         const heading = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? (360 - e.alpha) % 360 : null);
-        if (heading != null && !isNaN(heading)) setNavHeading(heading);
+        if (heading != null && !isNaN(heading)) {
+          setNavHeading(heading);
+          // 지도 자체는 회전시키지 않고(구글맵 캔버스를 CSS로 회전시키면 경로 폴리라인이 사라지는 렌더링 버그가 있었음),
+          // 대신 "나" 마커를 화살표 아이콘으로 만들어 보고 있는 방향을 가리키도록 회전시킴
+          if (navMeMarkerRef.current) {
+            const icon = navMeMarkerRef.current.getIcon();
+            navMeMarkerRef.current.setIcon({ ...icon, rotation: heading });
+          }
+        }
       };
       navHeadingListenerRef.current = handler;
       window.addEventListener("deviceorientation", handler);
@@ -691,7 +700,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           if (!navMeMarkerRef.current) {
             navMeMarkerRef.current = new google.maps.Marker({
               position: me, map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: "#4285F4", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 3, scale: 9 },
+              icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, fillColor: "#4285F4", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2, scale: 6, rotation: 0 },
               zIndex: 999,
             });
           } else {
@@ -761,6 +770,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   }
 
   // 구글 지도 링크 붙여넣기 시 이름/주소/좌표를 자동으로 채워줌 (실시간 미리보기용, 저장 시점에도 한 번 더 확인함)
+  // 링크가 바뀔 때마다 새로 조회한 값으로 항상 교체함 (다른 링크로 바꿔 넣으면 정보도 같이 새로 바뀌어야 하므로)
   async function handlePlaceMapLinkBlur() {
     if (!placeForm.mapLink.startsWith("http")) return;
     setResolvingPlaceLink(true);
@@ -769,10 +779,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       const data = await res.json();
       setPlaceForm(f => ({
         ...f,
-        name: f.name || data.name || f.name,
-        address: f.address || data.address || f.address,
-        lat: f.lat ?? (data.lat ?? undefined),
-        lng: f.lng ?? (data.lng ?? undefined),
+        name: data.name || f.name,
+        address: data.address || f.address,
+        lat: data.lat ?? f.lat,
+        lng: data.lng ?? f.lng,
       }));
     } catch (e) {
       console.warn("지도 링크 자동완성 실패", e);
@@ -960,6 +970,12 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
+          {days.some((d: any) => getItemsForDay(d._id).filter((it: any) => it.placeLat && it.placeLng).length >= 2) && (
+            <button onClick={() => setShowNavDayPicker(true)}
+              style={{ padding: "5px 12px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(0,0,0,0.06)", color: "var(--text-secondary)" }}>
+              🧭 경로 보기
+            </button>
+          )}
         </div>
 
         {navError && (
@@ -1051,17 +1067,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     {day.title && <span style={{ fontSize: "0.8rem", color: isExpanded ? "rgba(0,0,0,0.7)" : "var(--text-secondary)", fontWeight: 700 }}>· {day.title}</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {dayItems.filter((it: any) => it.placeLat && it.placeLng).length >= 2 && (
-                      <button onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartNavigation(day);
-                      }} disabled={navLoadingDayId === day._id} style={{
-                        padding: "3px 8px", borderRadius: 999, fontSize: "0.68rem", fontWeight: 800, border: "none", cursor: "pointer",
-                        background: "rgba(0,0,0,0.06)", color: "var(--text-secondary)",
-                      }}>
-                        {navLoadingDayId === day._id ? "로딩중..." : "🧭 경로 보기"}
-                      </button>
-                    )}
                     <div onClick={(e) => { e.stopPropagation(); toggleDay(day._id); }} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                       <span className="badge badge-sky" style={{ fontSize: "0.65rem", background: "var(--sky)", color: "#1a1a1a", border: isExpanded ? "1px solid rgba(0,0,0,0.1)" : "none" }}>{dayItems.length}개</span>
                       <span style={{ fontSize: 14, color: isExpanded ? "#1a1a1a" : "var(--text-muted)", transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}>▼</span>
@@ -1208,7 +1213,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
       {/* 장소 추가 모달 */}
       {showPlaceModal && (
-        <div className="modal-overlay" onClick={() => setShowPlaceModal(null)}>
+        <div className="modal-overlay" onClick={() => { setShowPlaceModal(null); setPlaceForm({ name: "", category: "attraction", address: "", time: "", mapLink: "", lat: undefined, lng: undefined }); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 16 }}>📍 장소 추가</h3>
             <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
@@ -1277,7 +1282,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowPlaceModal(null)}>취소</button>
+                  <button className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowPlaceModal(null); setPlaceForm({ name: "", category: "attraction", address: "", time: "", mapLink: "", lat: undefined, lng: undefined }); }}>취소</button>
                   <button className="btn-primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => handleAddPlace(showPlaceModal)} disabled={saving || (!placeForm.name.trim() && !placeForm.mapLink.trim())}>
                     {saving ? <span className="spinner" /> : "추가"}
                   </button>
@@ -1335,6 +1340,34 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         </div>
       )}
 
+      {/* 경로 보기 - DAY 선택 모달 */}
+      {showNavDayPicker && (
+        <div className="modal-overlay" onClick={() => setShowNavDayPicker(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 16 }}>🧭 경로를 볼 DAY를 선택하세요</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {days.map((day: any) => {
+                const locatedCount = getItemsForDay(day._id).filter((it: any) => it.placeLat && it.placeLng).length;
+                const td = tripDays.find(t => t.dayNumber === day.dayNumber);
+                if (locatedCount < 2) return null;
+                return (
+                  <button key={day._id} type="button"
+                    onClick={() => { setShowNavDayPicker(false); handleStartNavigation(day); }}
+                    disabled={navLoadingDayId === day._id}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(0,0,0,0.08)", background: "#fff", cursor: "pointer", fontSize: "0.9rem", fontWeight: 700 }}>
+                    <span>DAY {day.dayNumber} · {formatShortDate(day.date)}/{td?.weekday || ""}{day.title ? ` · ${day.title}` : ""}</span>
+                    <span style={{ fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                      {navLoadingDayId === day._id ? "로딩중..." : `장소 ${locatedCount}곳 →`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button className="btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 16 }} onClick={() => setShowNavDayPicker(false)}>취소</button>
+          </div>
+        </div>
+      )}
+
       {navData && (
         <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f172a", display: "flex", flexDirection: "column" }}>
           {/* 상단 턴바이턴 안내 배너 */}
@@ -1362,16 +1395,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             )}
           </div>
 
-          <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-            <div style={{
-              width: "100%", height: "100%",
-              transform: navHeadingMode ? `rotate(${-navHeading}deg) scale(1.6)` : "none",
-              transformOrigin: "center center",
-              transition: "transform 0.2s linear",
-            }}>
-              <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
-            </div>
-          </div>
+          <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
 
           {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
           <div style={{ position: "absolute", right: 14, top: navManeuver ? 164 : 70, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
