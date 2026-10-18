@@ -711,13 +711,17 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     });
 
     navData.places.forEach((p: any, idx: number) => {
-      new google.maps.Marker({
+      const marker = new google.maps.Marker({
         position: { lat: p.placeLat, lng: p.placeLng },
         map,
         label: { text: (idx + 1).toString(), color: "#fff", fontWeight: "bold", fontSize: "12px" },
         icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: "#6366f1", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 2, scale: 13 },
         title: p.placeName,
       });
+      // 지도 위 번호 핀을 탭해도 그 장소로 향하는 구간으로 바로 전환됨 (상단 "지금 가는 곳" 알약과 동일한 동작)
+      if (idx >= 1) {
+        marker.addListener("click", () => setManualStepIdx(navData.legStartStepIdx[idx - 1] ?? 0));
+      }
     });
 
     // 전체 경로가 다 보이도록 축소하지 않고, 실제 내비게이션처럼 내 위치 기준으로 가깝게 확대된 상태를 유지함 (zoom: 17)
@@ -1433,12 +1437,42 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                 </div>
               </div>
             )}
+            {/* 지금 가는 곳 선택 - 탭하면 그 장소로 향하는 구간 기준으로 안내가 바뀜 (GPS가 부정확하거나 실제 위치와 다를 때 유용) */}
+            {navData && navData.places.length > 1 && (
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10, paddingBottom: 2 }}>
+                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.7)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳:</span>
+                {navData.places.slice(1).map((p: any, idx: number) => {
+                  const placeNum = idx + 2; // 지도 마커 번호(1부터)와 맞춤; 이 배열은 places[1]부터 시작하므로 +2
+                  const legIdx = idx; // places[idx+1]로 향하는 구간 = legStartStepIdx[idx]
+                  const legStepStart = navData.legStartStepIdx[legIdx] ?? 0;
+                  const currentLegIdx = (() => {
+                    const stepIdx = navProgress?.stepIdx ?? 0;
+                    let li = 0;
+                    navData.legStartStepIdx.forEach((start, i) => { if (stepIdx >= start) li = i; });
+                    return li;
+                  })();
+                  const active = currentLegIdx === legIdx;
+                  return (
+                    <button key={p._id} onClick={() => setManualStepIdx(legStepStart)}
+                      style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: active ? "#2563eb" : "rgba(255,255,255,0.15)", color: "#fff" }}>
+                      {placeNum}. {p.placeName}
+                    </button>
+                  );
+                })}
+                {manualStepIdx !== null && (
+                  <button onClick={() => setManualStepIdx(null)}
+                    style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(245,158,11,0.9)", color: "#fff" }}>
+                    📍 자동으로
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
 
           {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
-          <div style={{ position: "absolute", right: 14, top: navManeuver ? 164 : 70, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ position: "absolute", right: 14, top: navManeuver ? 210 : 116, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={handleToggleNavMapType} title="지도 유형"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
               {navMapType === "satellite" ? "🛰️" : "🗺️"}
@@ -1471,35 +1505,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
               <span style={{ fontSize: "1.1rem", fontWeight: 800 }}>{navRemainingDistanceM < 1000 ? `${Math.round(navRemainingDistanceM)}m` : `${(navRemainingDistanceM / 1000).toFixed(1)}km`}</span>
               <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", fontWeight: 600 }}>{navEtaLabel} 도착</span>
             </div>
-            {navData && navData.places.length > 1 && (
-              <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: elevLinePoints.length > 1 ? 4 : 0 }}>
-                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳:</span>
-                {navData.places.slice(1).map((p: any, idx: number) => {
-                  const placeNum = idx + 2; // 지도 마커 번호(1부터)와 맞춤; 이 배열은 places[1]부터 시작하므로 +2
-                  const legIdx = idx; // places[idx+1]로 향하는 구간 = legStartStepIdx[idx]
-                  const legStepStart = navData.legStartStepIdx[legIdx] ?? 0;
-                  const currentLegIdx = (() => {
-                    const stepIdx = navProgress?.stepIdx ?? 0;
-                    let li = 0;
-                    navData.legStartStepIdx.forEach((start, i) => { if (stepIdx >= start) li = i; });
-                    return li;
-                  })();
-                  const active = currentLegIdx === legIdx;
-                  return (
-                    <button key={p._id} onClick={() => setManualStepIdx(legStepStart)}
-                      style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: active ? "#2563eb" : "rgba(0,0,0,0.06)", color: active ? "#fff" : "var(--text-secondary)" }}>
-                      {placeNum}. {p.placeName}
-                    </button>
-                  );
-                })}
-                {manualStepIdx !== null && (
-                  <button onClick={() => setManualStepIdx(null)}
-                    style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(245,158,11,0.15)", color: "var(--warning)" }}>
-                    📍 자동으로
-                  </button>
-                )}
-              </div>
-            )}
             {elevLinePoints.length > 1 && (
               <>
                 <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2, display: "flex", alignItems: "center", gap: 4 }}>
