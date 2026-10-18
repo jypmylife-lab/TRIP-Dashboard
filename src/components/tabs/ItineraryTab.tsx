@@ -91,7 +91,7 @@ const MANEUVER_INFO: Record<string, { label: string; rotation: number }> = {
   UNKNOWN_MANEUVER: { label: "직진", rotation: 0 },
 };
 
-// 10점 만점 별점 위젯 (별 10개, 별 1개당 1점). 탭 한 번으로 바로 선택되고,
+// 10점 만점 별점 위젯 (별 10개, 0.5점 단위). 탭 한 번으로 바로 선택되고,
 // 별 위를 눌러서 드래그하면 손가락을 뗄 때까지 미리보기가 따라오는, 리뷰 앱에서 흔히 쓰는 "드래그로 선택" 방식.
 function StarRating({ score, onChange, size = 16, readOnly = false }: { score: number; onChange?: (score: number) => void; size?: number; readOnly?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,8 +103,9 @@ function StarRating({ score, onChange, size = 16, readOnly = false }: { score: n
     if (!el) return null;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0) return null;
-    const idx = Math.ceil(((clientX - rect.left) / rect.width) * 10);
-    return Math.max(1, Math.min(10, idx));
+    const raw = ((clientX - rect.left) / rect.width) * 10;
+    const stepped = Math.round(raw * 2) / 2; // 0.5점 단위로 반올림
+    return Math.max(0.5, Math.min(10, stepped));
   }
 
   function handlePointerDown(e: React.PointerEvent) {
@@ -133,14 +134,55 @@ function StarRating({ score, onChange, size = 16, readOnly = false }: { score: n
       onPointerCancel={() => setDragScore(null)}
       style={{ display: "inline-flex", gap: 1, touchAction: readOnly ? undefined : "none", cursor: readOnly ? "default" : "pointer" }}>
       {Array.from({ length: 10 }, (_, idx) => idx + 1).map((i) => {
-        const filled = displayScore >= i;
+        const fillPct = Math.max(0, Math.min(1, displayScore - (i - 1))) * 100; // 0% / 50% / 100%
         return (
-          <svg key={i} width={size} height={size} viewBox="0 0 24 24" style={{ pointerEvents: "none" }}>
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              fill={filled ? "var(--warning)" : "rgba(0,0,0,0.12)"} />
-          </svg>
+          <div key={i} style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+            <svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="rgba(0,0,0,0.12)" />
+            </svg>
+            <div style={{ position: "absolute", top: 0, left: 0, width: `${fillPct}%`, height: size, overflow: "hidden", pointerEvents: "none" }}>
+              <svg width={size} height={size} viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="var(--warning)" />
+              </svg>
+            </div>
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+// 일정 항목의 별점 영역: 평소엔 숫자 평점만 보여주다가, 탭하면 큰 별 10개가 펼쳐져서 쉽게 매길 수 있음
+function ItemRating({ item, nickname, onRate }: { item: any; nickname: string; onRate: (item: any, score: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  const myScore = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
+  const others = (item.ratings || []).filter((r: any) => r.nickname !== nickname);
+
+  function handleChange(score: number) {
+    onRate(item, score);
+    setEditing(false);
+  }
+
+  return (
+    <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      {editing ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <StarRating score={myScore} onChange={handleChange} size={26} />
+          <button onClick={() => setEditing(false)} style={{ background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", width: 22, height: 22, cursor: "pointer", color: "var(--text-secondary)", fontSize: "0.7rem", flexShrink: 0 }}>✕</button>
+        </div>
+      ) : (
+        <button onClick={() => setEditing(true)}
+          style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4, background: myScore > 0 ? "rgba(245,158,11,0.1)" : "rgba(0,0,0,0.04)", border: "none", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontSize: "0.76rem", fontWeight: 700, color: myScore > 0 ? "var(--warning)" : "var(--text-muted)" }}>
+          {myScore > 0 ? `⭐ ${myScore.toFixed(1)}` : "별점 매기기"}
+        </button>
+      )}
+      {others.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingLeft: 2 }}>
+          {others.map((r: any) => (
+            <span key={r.nickname} style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{r.nickname} ⭐{r.score.toFixed(1)}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1026,28 +1068,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                           </div>
                                           
                                           {/* 별점 영역 */}
-                                          {(() => {
-                                            const myScore = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
-                                            const others = (item.ratings || []).filter((r: any) => r.nickname !== nickname);
-                                            return (
-                                              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                  <StarRating score={myScore} onChange={(s) => handleRate(item, s)} size={15} />
-                                                  <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>{myScore > 0 ? `내 평점 ${myScore.toFixed(1)}` : "별점 매기기"}</span>
-                                                </div>
-                                                {others.length > 0 && (
-                                                  <div style={{ display: "flex", flexDirection: "column", gap: 3, paddingLeft: 2 }}>
-                                                    {others.map((r: any) => (
-                                                      <div key={r.nickname} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                        <StarRating score={r.score} readOnly size={11} />
-                                                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>{r.nickname} · {r.score.toFixed(1)}</span>
-                                                      </div>
-                                                    ))}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            );
-                                          })()}
+                                          <ItemRating item={item} nickname={nickname} onRate={handleRate} />
                                         </>
                                       ) : null}
                                     </div>
