@@ -9,6 +9,7 @@ const CATEGORIES = [
   { id: "cafe", label: "카페", emoji: "☕" },
   { id: "dessert", label: "디저트", emoji: "🍰" },
   { id: "bar", label: "술집", emoji: "🍻" },
+  { id: "massage", label: "마사지", emoji: "💆" },
   { id: "attraction", label: "관광", emoji: "🏛️" },
   { id: "shopping", label: "쇼핑", emoji: "🛍️" },
   { id: "transport", label: "교통", emoji: "🚌" },
@@ -34,6 +35,7 @@ export default function MapTab({ trip }: { trip: any }) {
   const [mapError, setMapError] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
   const [resolvingLink, setResolvingLink] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [scheduleTarget, setScheduleTarget] = useState<any | null>(null);
   const [scheduleDayId, setScheduleDayId] = useState<string | null>(null);
   const [schedulePosition, setSchedulePosition] = useState(0);
@@ -185,6 +187,7 @@ export default function MapTab({ trip }: { trip: any }) {
           else if (p.category === "attraction") color = "blue-dot";
           else if (p.category === "dessert") color = "yellow-dot";
           else if (p.category === "bar") color = "green-dot";
+          else if (p.category === "massage") color = "ltblue-dot";
           
           const marker = new google.maps.Marker({
             position: pos, map: mapInstance, title: p.name,
@@ -507,16 +510,18 @@ export default function MapTab({ trip }: { trip: any }) {
                   <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                     onClick={(e) => { e.stopPropagation(); openScheduleModal({ ...a, category: "accommodation" }); }}>📅 일정 포함</button>
                 </div>
-                {apiKey && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/api/place-thumbnail?name=${encodeURIComponent(a.name)}${a.lat && a.lng ? `&lat=${a.lat}&lng=${a.lng}` : ""}`}
-                    alt="" loading="lazy" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
-                    onError={e => { e.currentTarget.style.display = "none"; }} />
-                )}
                 <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{a.name}</div>
                   {a.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {a.address}</p>}
-                  
+
+                  {apiKey && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/place-thumbnail?name=${encodeURIComponent(a.name)}${a.lat && a.lng ? `&lat=${a.lat}&lng=${a.lng}` : ""}`}
+                      alt="" loading="lazy" style={{ width: "100%", height: 190, objectFit: "cover", display: "block", borderRadius: 10, cursor: "zoom-in", marginTop: 4, marginBottom: 4 }}
+                      onClick={e => { e.stopPropagation(); setLightboxUrl(e.currentTarget.src); }}
+                      onError={e => { e.currentTarget.style.display = "none"; }} />
+                  )}
+
                   {(a.lat && a.lng) || a.address ? (
                     <div style={{ marginTop: "auto", paddingTop: 10 }}>
                       <a href={`https://maps.google.com/?q=${a.lat ? a.lat + ',' + a.lng : encodeURIComponent(a.address || a.name)}`} target="_blank" rel="noopener noreferrer"
@@ -546,17 +551,20 @@ export default function MapTab({ trip }: { trip: any }) {
                         onClick={(e) => { e.stopPropagation(); removePlace({ placeId: p._id }); }}>삭제</button>
                     </div>
                   </div>
-                  {apiKey && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`/api/place-thumbnail?name=${encodeURIComponent(p.name)}${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}` : ""}`}
-                      alt="" loading="lazy" style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
-                      onError={e => { e.currentTarget.style.display = "none"; }} />
-                  )}
                   <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{p.name}</div>
                     {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {p.address}</p>}
+
+                    {apiKey && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/place-thumbnail?name=${encodeURIComponent(p.name)}${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}` : ""}`}
+                        alt="" loading="lazy" style={{ width: "100%", height: 190, objectFit: "cover", display: "block", borderRadius: 10, cursor: "zoom-in", marginBottom: 4 }}
+                        onClick={e => { e.stopPropagation(); setLightboxUrl(e.currentTarget.src); }}
+                        onError={e => { e.currentTarget.style.display = "none"; }} />
+                    )}
+
                     {p.notes && <p style={{ color: "var(--text-secondary)", fontSize: "0.78rem", marginBottom: 4, padding: "8px", background: "rgba(0,0,0,0.03)", borderRadius: 8 }}>{p.notes}</p>}
-                    
+
                     <div style={{ marginTop: "auto", paddingTop: 10 }}>
                       {p.mapLink || (p.lat && p.lng) ? (
                         <a href={p.mapLink || `https://maps.google.com/?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer"
@@ -662,6 +670,17 @@ export default function MapTab({ trip }: { trip: any }) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {lightboxUrl && (
+        <div onClick={() => setLightboxUrl(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, cursor: "zoom-out" }}>
+          <button onClick={() => setLightboxUrl(null)}
+            style={{ position: "absolute", top: 16, right: 16, width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightboxUrl} alt="" style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 12, objectFit: "contain" }}
+            onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

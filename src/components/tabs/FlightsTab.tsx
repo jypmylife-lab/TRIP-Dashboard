@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { analyzeImage } from "@/components/ImageUploader";
@@ -227,12 +227,12 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
 
 // 실시간 게이트/터미널 조회 (AviationStack) - 출발 당일에 가까워져야 데이터가 채워짐
 function FlightGateInfo({ flightNumber }: { flightNumber: string }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
-  async function handleCheck(e: React.MouseEvent) {
-    e.stopPropagation();
+  async function handleCheck(e?: React.MouseEvent) {
+    e?.stopPropagation();
     setLoading(true); setError("");
     try {
       const res = await fetch(`/api/flight-status?flightNumber=${encodeURIComponent(flightNumber)}`);
@@ -246,21 +246,23 @@ function FlightGateInfo({ flightNumber }: { flightNumber: string }) {
     }
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { handleCheck(); }, [flightNumber]);
+
   return (
     <div style={{ padding: "10px 18px 14px", borderTop: "2px dashed rgba(0,0,0,0.06)" }} onClick={e => e.stopPropagation()}>
-      {!result && (
-        <button onClick={handleCheck} disabled={loading}
-          style={{ width: "100%", padding: "8px", fontSize: "0.8rem", fontWeight: 700, color: "var(--accent)", background: "rgba(99,102,241,0.06)", border: "none", borderRadius: 8, cursor: loading ? "default" : "pointer" }}>
-          {loading ? <span className="spinner" /> : "🛫 실시간 게이트/터미널 조회"}
-        </button>
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>
+          <span className="spinner" style={{ width: 14, height: 14 }} /> 게이트/터미널 조회 중...
+        </div>
       )}
-      {error && (
-        <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: "0.76rem", color: "var(--text-muted)" }}>
+      {!loading && error && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: "0.76rem", color: "var(--text-muted)" }}>
           <span>⚠️ {error}</span>
           <button onClick={handleCheck} style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>다시 시도</button>
         </div>
       )}
-      {result && (
+      {!loading && result && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
             <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>출발 터미널 · 게이트</div>
