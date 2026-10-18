@@ -22,6 +22,10 @@ export default function MapTab({ trip }: { trip: any }) {
   const addPlace = useMutation(api.places.addPlace);
   const updatePlace = useMutation(api.places.updatePlace);
   const removePlace = useMutation(api.places.removePlace);
+  const itineraryDays = useQuery(api.itinerary.listDaysByTrip, { tripId: trip._id });
+  const itineraryItems = useQuery(api.itinerary.listItemsByTrip, { tripId: trip._id });
+  const addItineraryItem = useMutation(api.itinerary.addItem);
+  const updateItineraryItem = useMutation(api.itinerary.updateItem);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,6 +34,10 @@ export default function MapTab({ trip }: { trip: any }) {
   const [mapError, setMapError] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
   const [resolvingLink, setResolvingLink] = useState(false);
+  const [scheduleTarget, setScheduleTarget] = useState<any | null>(null);
+  const [scheduleDayId, setScheduleDayId] = useState<string | null>(null);
+  const [schedulePosition, setSchedulePosition] = useState(0);
+  const [scheduling, setScheduling] = useState(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -328,6 +336,41 @@ export default function MapTab({ trip }: { trip: any }) {
     setShowForm(true);
   }
 
+  // 일정에 포함할 DAY의 현재 항목 목록 (정렬됨)
+  function itemsForDay(dayId: string) {
+    return (itineraryItems || [])
+      .filter((it: any) => it.dayId === dayId)
+      .sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+  }
+
+  function openScheduleModal(p: any) {
+    setScheduleTarget(p);
+    const firstDay = itineraryDays && itineraryDays.length > 0 ? itineraryDays[0]._id : null;
+    setScheduleDayId(firstDay);
+    setSchedulePosition(firstDay ? itemsForDay(firstDay).length : 0);
+  }
+
+  async function handleConfirmSchedule() {
+    if (!scheduleTarget || !scheduleDayId) return;
+    setScheduling(true);
+    try {
+      const existing = itemsForDay(scheduleDayId);
+      // 선택한 위치 이후 항목들은 순서를 한 칸씩 뒤로 밀어줌
+      for (let i = schedulePosition; i < existing.length; i++) {
+        await updateItineraryItem({ itemId: existing[i]._id, orderIndex: i + 1 });
+      }
+      await addItineraryItem({
+        dayId: scheduleDayId as any, tripId: trip._id, orderIndex: schedulePosition,
+        type: "place", placeName: scheduleTarget.name, placeCategory: scheduleTarget.category,
+        placeAddress: scheduleTarget.address || undefined, placeLat: scheduleTarget.lat, placeLng: scheduleTarget.lng,
+        placeMapLink: scheduleTarget.mapLink || undefined,
+      });
+      setScheduleTarget(null);
+    } finally {
+      setScheduling(false);
+    }
+  }
+
   function findMyLocation() {
     if (navigator.geolocation && mapInstance && (window as any).google) {
       navigator.geolocation.getCurrentPosition(
@@ -461,6 +504,8 @@ export default function MapTab({ trip }: { trip: any }) {
               onClick={() => focusPlace(a.lat, a.lng)}>
                 <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ color: "#1a1a1a", fontSize: "0.8rem", fontWeight: 800, letterSpacing: 1 }}>🏨 숙소</span>
+                  <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
+                    onClick={(e) => { e.stopPropagation(); openScheduleModal({ ...a, category: "accommodation" }); }}>📅 일정 포함</button>
                 </div>
                 <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{a.name}</div>
@@ -487,6 +532,8 @@ export default function MapTab({ trip }: { trip: any }) {
                   <div style={{ background: "var(--mint)", padding: "12px 16px", borderBottom: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ color: "#1a1a1a", fontSize: "0.8rem", fontWeight: 800, letterSpacing: 1 }}>{cat?.emoji} {cat?.label}</span>
                     <div style={{ display: "flex", gap: 4 }}>
+                      <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
+                        onClick={(e) => { e.stopPropagation(); openScheduleModal(p); }}>📅 일정 포함</button>
                       <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
                         onClick={(e) => { e.stopPropagation(); handleEdit(p); }}>수정</button>
                       <button className="btn-ghost" style={{ padding: "2px 6px", fontSize: "0.72rem", color: "rgba(0,0,0,0.6)", background: "transparent", border: "none", fontWeight: 700 }}
@@ -552,6 +599,56 @@ export default function MapTab({ trip }: { trip: any }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {scheduleTarget && (
+        <div className="modal-overlay" onClick={() => setScheduleTarget(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 16 }}>📅 일정에 포함 — {scheduleTarget.name}</h3>
+            {!itineraryDays || itineraryDays.length === 0 ? (
+              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>아직 일정에 DAY가 없습니다. 먼저 일정 탭에서 DAY를 추가해주세요.</p>
+            ) : (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <label>어느 DAY에 추가할까요?</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                    {itineraryDays.map((d: any) => (
+                      <button key={d._id} type="button"
+                        onClick={() => { setScheduleDayId(d._id); setSchedulePosition(itemsForDay(d._id).length); }}
+                        style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${scheduleDayId === d._id ? "var(--accent)" : "var(--glass-border)"}`, background: scheduleDayId === d._id ? "var(--accent-dim)" : "transparent", color: scheduleDayId === d._id ? "var(--accent)" : "var(--text-secondary)", fontSize: "0.82rem", cursor: "pointer" }}>
+                        DAY {d.dayNumber} ({d.date})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {scheduleDayId && (
+                  <div style={{ marginBottom: 20 }}>
+                    <label>순서</label>
+                    {itemsForDay(scheduleDayId).length === 0 ? (
+                      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: 4 }}>이 DAY의 첫 일정으로 추가됩니다.</p>
+                    ) : (
+                      <select className="input" value={schedulePosition} onChange={e => setSchedulePosition(Number(e.target.value))}>
+                        {itemsForDay(scheduleDayId).map((it: any, idx: number) => (
+                          <option key={it._id} value={idx}>{idx + 1}번째 — “{it.placeName}” 앞에</option>
+                        ))}
+                        <option value={itemsForDay(scheduleDayId).length}>맨 마지막에 추가</option>
+                      </select>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setScheduleTarget(null)}>취소</button>
+              {itineraryDays && itineraryDays.length > 0 && (
+                <button type="button" className="btn-primary" style={{ flex: 1, justifyContent: "center" }} disabled={!scheduleDayId || scheduling} onClick={handleConfirmSchedule}>
+                  {scheduling ? <span className="spinner" /> : "추가"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

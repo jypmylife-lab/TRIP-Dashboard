@@ -122,6 +122,8 @@ export default defineSchema({
     placeMapLink: v.optional(v.string()),
     // 메모 관련
     memo: v.optional(v.string()),
+    // 참여자별 별점 (0~10, 0.5 단위)
+    ratings: v.optional(v.array(v.object({ nickname: v.string(), score: v.number() }))),
     // 공통
     time: v.optional(v.string()),                 // "10:00"
     photos: v.optional(v.array(v.string())),      // Convex Storage ID 배열 (최대 5개)

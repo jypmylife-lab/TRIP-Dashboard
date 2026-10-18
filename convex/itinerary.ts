@@ -159,6 +159,23 @@ export const updateItem = mutation({
   },
 });
 
+// 참여자별 별점 매기기 (0~10, 0.5 단위) - 기존 평가가 있으면 교체
+export const rateItem = mutation({
+  args: {
+    itemId: v.id("itineraryItems"),
+    nickname: v.string(),
+    score: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.itemId);
+    if (!item) return;
+    const others = (item.ratings || []).filter((r) => r.nickname !== args.nickname);
+    await ctx.db.patch(args.itemId, {
+      ratings: [...others, { nickname: args.nickname, score: args.score }],
+    });
+  },
+});
+
 // 사진 하나 삭제 (사진에 달린 댓글도 함께 삭제)
 export const removePhoto = mutation({
   args: { 

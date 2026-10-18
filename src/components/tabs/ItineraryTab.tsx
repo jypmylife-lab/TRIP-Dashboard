@@ -8,6 +8,8 @@ import ItineraryComments from "./ItineraryComments";
 const CATEGORIES = [
   { id: "food", label: "음식", emoji: "🍜" },
   { id: "cafe", label: "카페", emoji: "☕" },
+  { id: "dessert", label: "디저트", emoji: "🍰" },
+  { id: "bar", label: "술집", emoji: "🍻" },
   { id: "attraction", label: "관광", emoji: "🏛️" },
   { id: "shopping", label: "쇼핑", emoji: "🛍️" },
   { id: "transport", label: "교통", emoji: "🚌" },
@@ -78,6 +80,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const addItem = useMutation(api.itinerary.addItem);
   const updateItem = useMutation(api.itinerary.updateItem);
   const removeItem = useMutation(api.itinerary.removeItem);
+  const rateItem = useMutation(api.itinerary.rateItem);
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [focusedDayId, setFocusedDayId] = useState<string | null>(null);
@@ -89,8 +92,6 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [placeTab, setPlaceTab] = useState<"saved" | "search">("saved");
   const [editingTime, setEditingTime] = useState<string | null>(null);
   const [editTimeVal, setEditTimeVal] = useState("");
-  const [editingMemo, setEditingMemo] = useState<string | null>(null);
-  const [editMemoVal, setEditMemoVal] = useState("");
   const [editPlaceModal, setEditPlaceModal] = useState<any | null>(null);
   const [editingPlace, setEditingPlace] = useState<string | null>(null);
   const [editPlaceForm, setEditPlaceForm] = useState({ name: "", category: "attraction" });
@@ -415,9 +416,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setEditingTime(null);
   }
 
-  async function handleSaveMemo(itemId: string) {
-    await updateItem({ itemId: itemId as any, memo: editMemoVal || undefined });
-    setEditingMemo(null);
+  async function handleRate(item: any, delta: number) {
+    const current = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
+    const next = Math.min(10, Math.max(0, current + delta));
+    await rateItem({ itemId: item._id, nickname, score: next });
   }
 
   async function handleMoveItem(item: any, direction: "up" | "down", dayItems: any[]) {
@@ -609,23 +611,25 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                                             {item.placeAddress && <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>· {item.placeAddress}</span>}
                                           </div>
                                           
-                                          {/* 메모 영역 */}
-                                          {editingMemo === item._id ? (
-                                            <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
-                                              <input className="input" placeholder="메모 입력" value={editMemoVal} onChange={e => setEditMemoVal(e.target.value)} style={{ padding: "4px 8px", fontSize: "0.82rem", minHeight: 28 }} autoFocus onKeyDown={e => e.key === "Enter" && handleSaveMemo(item._id)} />
-                                              <button onClick={() => handleSaveMemo(item._id)} style={{ padding: "4px 10px", fontSize: "0.78rem", background: "var(--accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>저장</button>
-                                              <button onClick={() => setEditingMemo(null)} style={{ padding: "4px 10px", fontSize: "0.78rem", background: "transparent", border: "1px solid rgba(0,0,0,0.1)", borderRadius: 6, cursor: "pointer" }}>취소</button>
-                                            </div>
-                                          ) : item.memo ? (
-                                            <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(245,158,11,0.06)", borderRadius: 8, borderLeft: "3px solid var(--warning)", fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.4, position: "relative" }}>
-                                              {item.memo}
-                                              <button onClick={() => { setEditingMemo(item._id); setEditMemoVal(item.memo); }} style={{ position: "absolute", top: 4, right: 4, background: "none", border: "none", fontSize: "0.7rem", color: "var(--text-muted)", cursor: "pointer" }}>✏️</button>
-                                            </div>
-                                          ) : (
-                                            <button onClick={() => { setEditingMemo(item._id); setEditMemoVal(""); }} style={{ marginTop: 8, background: "none", border: "none", fontSize: "0.75rem", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                                              <span style={{ fontSize: "0.9rem" }}>📝</span> 메모 추가
-                                            </button>
-                                          )}
+                                          {/* 별점 영역 */}
+                                          {(() => {
+                                            const myScore = item.ratings?.find((r: any) => r.nickname === nickname)?.score ?? 0;
+                                            const others = (item.ratings || []).filter((r: any) => r.nickname !== nickname);
+                                            return (
+                                              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 2, background: "rgba(245,158,11,0.08)", borderRadius: 8, padding: "2px 4px" }}>
+                                                  <button onClick={() => handleRate(item, -0.5)} disabled={myScore <= 0}
+                                                    style={{ width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent", color: myScore <= 0 ? "rgba(0,0,0,0.2)" : "var(--text-secondary)", cursor: myScore <= 0 ? "default" : "pointer", fontWeight: 800, fontSize: "0.85rem" }}>−</button>
+                                                  <span style={{ fontSize: "0.8rem", fontWeight: 800, color: "var(--warning)", minWidth: 44, textAlign: "center" }}>⭐ {myScore.toFixed(1)}</span>
+                                                  <button onClick={() => handleRate(item, 0.5)} disabled={myScore >= 10}
+                                                    style={{ width: 22, height: 22, borderRadius: 6, border: "none", background: "transparent", color: myScore >= 10 ? "rgba(0,0,0,0.2)" : "var(--text-secondary)", cursor: myScore >= 10 ? "default" : "pointer", fontWeight: 800, fontSize: "0.85rem" }}>+</button>
+                                                </div>
+                                                {others.map((r: any) => (
+                                                  <span key={r.nickname} className="badge" style={{ fontSize: "0.66rem" }}>{r.nickname} ⭐{r.score.toFixed(1)}</span>
+                                                ))}
+                                              </div>
+                                            );
+                                          })()}
                                         </>
                                       ) : null}
                                     </div>
