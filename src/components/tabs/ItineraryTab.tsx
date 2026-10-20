@@ -1102,7 +1102,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
 
         {/* 상단 지도 영역 (경로 표시, 네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
         <div style={{ position: "relative", margin: "0 -16px" }}>
-        <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", flexShrink: 0, borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
+        <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", flexShrink: 0, borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)", borderLeft: "none", borderRight: "none", position: "relative" }}>
           <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
           {!mapInstance && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
@@ -1579,7 +1579,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
 
           {/* 좌측 하단 버튼: 경로 전체 보기 ↔ 내 위치로 복귀 (고도 그래프를 접으면 시트가 짧아지는 만큼 버튼도 같이 내려옴) */}
           <button onClick={handleToggleOverview} title={navOverviewMode ? "내 위치로" : "전체 경로 보기"}
-            style={{ position: "absolute", left: 14, bottom: navElevCollapsed ? 70 : 150, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: navOverviewMode ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "bottom 0.3s ease" }}>
+            style={{ position: "absolute", left: 14, bottom: navElevCollapsed ? 96 : 186, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: navOverviewMode ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "bottom 0.3s ease" }}>
             {navOverviewMode ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="3" fill="#fff" stroke="none" />
