@@ -705,7 +705,9 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
       setNavAutoFollow(false);
       const bounds = new google.maps.LatLngBounds();
       navData.path.forEach((pt: any) => bounds.extend(pt));
-      map.fitBounds(bounds);
+      // 상단 배너·하단 시트가 지도 위를 덮고 있으므로, 그 영역만큼 여백을 넉넉히 줘서
+      // 경로가 배너/시트에 가려지지 않고 실제로 화면에 꽉 차게 보이도록 함
+      map.fitBounds(bounds, { top: 140, right: 70, bottom: 260, left: 70 });
       setNavOverviewMode(true);
     } else {
       setNavOverviewMode(false);
@@ -1559,18 +1561,13 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
                 )}
               </svg>
             </button>
+            {/* 나침반 모양 아이콘으로 통일 - 좌측 하단의 "경로 전체 보기" 버튼과 모양이 겹치지 않도록 구분함 */}
             <button onClick={handleRecenterNavigation} title={navHeadingMode ? "나침반 모드 끄기" : navAutoFollow ? "나침반 모드 켜기" : "내 위치로"}
               style={{ width: 44, height: 44, borderRadius: "50%", background: navHeadingMode ? "#f59e0b" : navAutoFollow ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {navHeadingMode ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none">
-                  <path d="M12 2l4 9-4 11-4-11z" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="3" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
-                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                </svg>
-              )}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow || navHeadingMode ? "#fff" : "#4285F4"} strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M15.5 8.5l-2 5-5 2 2-5z" fill={navAutoFollow || navHeadingMode ? "#fff" : "#4285F4"} stroke="none" />
+              </svg>
             </button>
             <button onClick={() => navData && handleStartNavigation(navData.day)} title="경로 새로고침"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1580,9 +1577,9 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
             </button>
           </div>
 
-          {/* 좌측 하단 버튼: 경로 전체 보기 ↔ 내 위치로 복귀 */}
+          {/* 좌측 하단 버튼: 경로 전체 보기 ↔ 내 위치로 복귀 (고도 그래프를 접으면 시트가 짧아지는 만큼 버튼도 같이 내려옴) */}
           <button onClick={handleToggleOverview} title={navOverviewMode ? "내 위치로" : "전체 경로 보기"}
-            style={{ position: "absolute", left: 14, bottom: 150, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: navOverviewMode ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            style={{ position: "absolute", left: 14, bottom: navElevCollapsed ? 70 : 150, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: navOverviewMode ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "bottom 0.3s ease" }}>
             {navOverviewMode ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="3" fill="#fff" stroke="none" />
@@ -1590,19 +1587,21 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
               </svg>
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" />
+                <circle cx="6" cy="7" r="2" fill="#1a1a1a" stroke="none" />
+                <circle cx="18" cy="17" r="2" fill="#1a1a1a" stroke="none" />
+                <path d="M6 9c0 4.5 7 2.5 7 6s2.5 1.5 5 2" />
               </svg>
             )}
           </button>
 
-          {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 (손잡이를 아래로 끌면 고도 그래프가 숨겨짐) */}
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "0 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)" }}>
-            <div
-              onPointerDown={handleNavSheetPointerDown}
-              onPointerMove={handleNavSheetPointerMove}
-              onPointerUp={handleNavSheetPointerUp}
-              onPointerCancel={handleNavSheetPointerUp}
-              style={{ display: "flex", justifyContent: "center", padding: "10px 0 8px", cursor: "grab", touchAction: "none" }}>
+          {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 (시트 영역 전체를 위아래로 끌면 고도 그래프가 숨겨지거나 다시 나타남) */}
+          <div
+            onPointerDown={handleNavSheetPointerDown}
+            onPointerMove={handleNavSheetPointerMove}
+            onPointerUp={handleNavSheetPointerUp}
+            onPointerCancel={handleNavSheetPointerUp}
+            style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "0 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)", touchAction: "none" }}>
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 8px", cursor: "grab" }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.15)" }} />
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
