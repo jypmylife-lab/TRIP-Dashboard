@@ -51,6 +51,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersRef = useRef<any[]>([]);
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
+  const [tempRating, setTempRating] = useState<number | null>(null);
+  const [tempRatingsTotal, setTempRatingsTotal] = useState<number | null>(null);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const isMapExpandedRef = useRef(isMapExpanded);
   useEffect(() => { isMapExpandedRef.current = isMapExpanded; }, [isMapExpanded]);
@@ -269,6 +271,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
     let lng: number | undefined;
     let resolvedName: string | undefined;
     let resolvedAddress: string | undefined;
+    let resolvedRating: number | undefined;
+    let resolvedRatingsTotal: number | undefined;
 
     try {
       if (form.mapLink) {
@@ -307,6 +311,10 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
             }
             if (data.name) resolvedName = data.name;
             if (data.address) resolvedAddress = data.address;
+            if (typeof data.rating === "number") {
+              resolvedRating = data.rating;
+              resolvedRatingsTotal = data.ratingsTotal ?? undefined;
+            }
           } catch (e) {
             console.warn("Link resolution API failed", e);
           }
@@ -345,7 +353,9 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         lng: (lng !== undefined && !isNaN(lng)) ? lng : undefined,
         mapLink: form.mapLink || undefined,
         category: form.category,
-        notes: form.notes || undefined
+        notes: form.notes || undefined,
+        googleRating: tempRating ?? resolvedRating ?? undefined,
+        googleRatingsTotal: tempRatingsTotal ?? resolvedRatingsTotal ?? undefined,
       };
 
       if (editingId) {
@@ -353,11 +363,13 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
       } else {
         await addPlace({ tripId: trip._id, ...payload });
       }
-      
+
       setShowForm(false);
       setEditingId(null);
       setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" });
       setTempLatLng(null);
+      setTempRating(null);
+      setTempRatingsTotal(null);
       if (lat !== undefined && lng !== undefined) focusPlace(lat, lng);
     } catch (err: any) {
       console.error("장소 저장 오류:", err);
@@ -376,6 +388,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
       const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(form.mapLink)}`);
       const data = await res.json();
       if (data.lat && data.lng) setTempLatLng({ lat: data.lat, lng: data.lng });
+      setTempRating(typeof data.rating === "number" ? data.rating : null);
+      setTempRatingsTotal(typeof data.rating === "number" ? (data.ratingsTotal ?? null) : null);
       setForm(f => ({
         ...f,
         name: data.name || f.name,
@@ -400,6 +414,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
     setForm({ name: p.name || "", address: p.address || "", mapLink: p.mapLink || "", category: p.category || "attraction", notes: p.notes || "" });
     setEditingId(p._id);
     setTempLatLng(null);
+    setTempRating(typeof p.googleRating === "number" ? p.googleRating : null);
+    setTempRatingsTotal(typeof p.googleRatingsTotal === "number" ? p.googleRatingsTotal : null);
     setShowForm(true);
   }
 
@@ -478,7 +494,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
           <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
           {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
         </div>
-        <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
+        <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setTempRating(null); setTempRatingsTotal(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
       </div>
 
       {/* 지도 표시 (네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
@@ -741,7 +757,14 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
                     </div>
                   </div>
                   <div style={{ padding: 16, display: "flex", flexDirection: "column", flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: "0.95rem", marginBottom: 6, color: "#1a1a1a" }}>{p.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1a1a1a" }}>{p.name}</span>
+                      {typeof p.googleRating === "number" && (
+                        <span style={{ fontSize: "0.76rem", fontWeight: 700, color: "var(--warning)", whiteSpace: "nowrap" }}>
+                          ⭐ {p.googleRating.toFixed(1)}{typeof p.googleRatingsTotal === "number" && ` (${p.googleRatingsTotal.toLocaleString()})`}
+                        </span>
+                      )}
+                    </div>
                     {p.address && <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: 4 }}>📍 {p.address}</p>}
 
                     {apiKey && (
@@ -770,7 +793,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         )}
 
       {showForm && (
-        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); }}>
+        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setTempRating(null); setTempRatingsTotal(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 20 }}>{editingId ? "✏️ 장소 수정" : "📌 장소 추가"}</h3>
             <div className="glass" style={{ padding: 14, marginBottom: 16, borderRadius: 10, background: "rgba(0,0,0,0.02)" }}>
@@ -786,6 +809,11 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
                   onBlur={handleMapLinkBlur}
                   onPaste={() => setTimeout(handleMapLinkBlur, 0)} />
                 {resolvingLink && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: 4 }}>🔎 이름/주소 자동완성 중...</p>}
+                {!resolvingLink && tempRating !== null && (
+                  <p style={{ fontSize: "0.74rem", color: "var(--warning)", fontWeight: 700, marginTop: 4 }}>
+                    ⭐ 구글 평점 {tempRating.toFixed(1)}{tempRatingsTotal !== null && ` (${tempRatingsTotal.toLocaleString()}개)`}
+                  </p>
+                )}
               </div>
               <div><label>주소 (선택)</label><input className="input" placeholder="주소 직접 입력 가능" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
 
@@ -803,7 +831,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
               </div>
               <div><label>메모</label><input className="input" placeholder="메모 (선택)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); }}>취소</button>
+                <button type="button" className="btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowForm(false); setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setTempRating(null); setTempRatingsTotal(null); }}>취소</button>
                 <button type="submit" className="btn-primary" style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
                   {saving ? <span className="spinner" /> : "저장"}
                 </button>

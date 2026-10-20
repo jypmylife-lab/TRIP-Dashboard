@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
     const finalUrl = res.url;
     let lat: number | undefined;
     let lng: number | undefined;
+    let rating: number | null = null;
+    let ratingsTotal: number | null = null;
 
     // --- 추출 로직 시작 ---
 
@@ -52,20 +54,25 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 패턴 4: Place ID 추출 (!1s 패턴) - 가장 정확함
+    // 패턴 4: Place ID 추출 (!1s 패턴) - 가장 정확함. Place Details API로 좌표와 평점을 한 번에 가져옴
     if (!lat || isNaN(lat)) {
       const placeIdMatch = finalUrl.match(/!1s(0x[0-9a-f]+:[0-9a-f]+)/i) || finalUrl.match(/place_id=([^&]+)/);
       if (placeIdMatch && API_KEY) {
         const placeId = placeIdMatch[1];
         try {
-          const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${API_KEY}`);
-          const geoData = await geoRes.json();
-          if (geoData.results && geoData.results.length > 0) {
-            lat = geoData.results[0].geometry.location.lat;
-            lng = geoData.results[0].geometry.location.lng;
+          const detailsRes = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,rating,user_ratings_total&key=${API_KEY}`);
+          const detailsData = await detailsRes.json();
+          const loc = detailsData.result?.geometry?.location;
+          if (loc) {
+            lat = loc.lat;
+            lng = loc.lng;
+          }
+          if (typeof detailsData.result?.rating === "number") {
+            rating = detailsData.result.rating;
+            ratingsTotal = detailsData.result.user_ratings_total ?? null;
           }
         } catch (e) {
-          console.warn('Place ID Geocoding failed:', e);
+          console.warn('Place Details lookup failed:', e);
         }
       }
     }
@@ -91,7 +98,7 @@ export async function GET(req: NextRequest) {
       // 순수 "위도,경도" 숫자 쌍은 패턴 3에서 이미 처리되므로, 텍스트인 경우만 검색
       if (qText && !/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(qText)) {
         try {
-          const fpRes = await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(qText)}&inputtype=textquery&fields=name,formatted_address,geometry&key=${API_KEY}`);
+          const fpRes = await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(qText)}&inputtype=textquery&fields=name,formatted_address,geometry,rating,user_ratings_total&key=${API_KEY}`);
           const fpData = await fpRes.json();
           const candidate = fpData.candidates?.[0];
           if (candidate?.geometry?.location) {
@@ -103,6 +110,10 @@ export async function GET(req: NextRequest) {
             };
             lat = placesTextResult.lat;
             lng = placesTextResult.lng;
+          }
+          if (typeof candidate?.rating === "number") {
+            rating = candidate.rating;
+            ratingsTotal = candidate.user_ratings_total ?? null;
           }
         } catch (e) {
           console.warn('findplacefromtext fallback failed:', e);
@@ -133,12 +144,30 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 평점: 위에서 아직 못 찾았다면(=좌표가 URL에 바로 박혀있던 가장 흔한 케이스), 이름으로 한 번 더 검색해서 채움
+    if (rating === null && name && API_KEY) {
+      try {
+        const ratingQuery = address ? `${name} ${address}` : name;
+        const ratingRes = await fetch(`https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(ratingQuery)}&inputtype=textquery&fields=rating,user_ratings_total&key=${API_KEY}`);
+        const ratingData = await ratingRes.json();
+        const candidate = ratingData.candidates?.[0];
+        if (typeof candidate?.rating === "number") {
+          rating = candidate.rating;
+          ratingsTotal = candidate.user_ratings_total ?? null;
+        }
+      } catch (e) {
+        console.warn('Rating lookup failed:', e);
+      }
+    }
+
     return NextResponse.json({
       finalUrl,
       lat: (lat !== undefined && !isNaN(lat)) ? lat : null,
       lng: (lng !== undefined && !isNaN(lng)) ? lng : null,
       name,
       address,
+      rating,
+      ratingsTotal,
     });
   } catch (err: any) {
     console.error('Link resolution failed:', err);

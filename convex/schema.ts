@@ -76,8 +76,10 @@ export default defineSchema({
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),
     mapLink: v.optional(v.string()),  // 지도 URL
-    category: v.string(),             
+    category: v.string(),
     notes: v.optional(v.string()),
+    googleRating: v.optional(v.number()),          // 구글 평점 (5점 만점)
+    googleRatingsTotal: v.optional(v.number()),     // 구글 평점 참여자 수
     createdAt: v.number(),
   }).index("by_tripId", ["tripId"]),
 

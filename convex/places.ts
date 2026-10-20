@@ -19,6 +19,8 @@ export const addPlace = mutation({
     mapLink: v.optional(v.string()),
     category: v.string(),
     notes: v.optional(v.string()),
+    googleRating: v.optional(v.number()),
+    googleRatingsTotal: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("places", { ...args, createdAt: Date.now() });
@@ -35,6 +37,8 @@ export const updatePlace = mutation({
     mapLink: v.optional(v.string()),
     category: v.optional(v.string()),
     notes: v.optional(v.string()),
+    googleRating: v.optional(v.number()),
+    googleRatingsTotal: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { placeId, ...fields } = args;
