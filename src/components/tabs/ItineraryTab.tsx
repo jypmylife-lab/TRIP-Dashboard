@@ -1079,7 +1079,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-primary)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
