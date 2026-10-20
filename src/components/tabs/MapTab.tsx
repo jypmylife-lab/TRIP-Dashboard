@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import NicknameBadge from "@/components/NicknameBadge";
 
 const CATEGORIES = [
   { id: "accommodation", label: "숙소", emoji: "🏨" },
@@ -16,7 +17,7 @@ const CATEGORIES = [
   { id: "other", label: "기타", emoji: "📌" },
 ];
 
-export default function MapTab({ trip }: { trip: any }) {
+export default function MapTab({ trip, nickname, shareId }: { trip: any; nickname?: string; shareId?: string }) {
   const places = useQuery(api.places.listPlacesByTrip, { tripId: trip._id });
   const accommodations = useQuery(api.accommodations.listByTrip, { tripId: trip._id });
   const updateAccommodation = useMutation(api.accommodations.update);
@@ -472,7 +473,10 @@ export default function MapTab({ trip }: { trip: any }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
+          {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
+        </div>
         <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
       </div>
 

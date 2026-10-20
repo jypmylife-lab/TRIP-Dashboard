@@ -148,7 +148,8 @@ export default function TripPage() {
   // 메인 대시보드
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-primary)" }}>
-      {/* 헤더 */}
+      {/* 헤더 - 예약 탭에서만 보여주고, 나머지 탭은 각 탭 타이틀 옆의 닉네임 뱃지로 대체해 상단 공간을 아낌 */}
+      {activeTab === "bookings" && (
       <header style={{ background: theme.bg, color: theme.text, padding: "18px 16px 16px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
         <div style={{ maxWidth: 900, margin: "0 auto", position: "relative" }}>
@@ -218,6 +219,7 @@ export default function TripPage() {
           </div>
         </div>
       </header>
+      )}
 
       {/* 탭 네비게이션 */}
       <div className="tab-nav-wrapper" style={{ padding: "14px 20px 0", background: "var(--bg-primary)", position: "sticky", top: 0, zIndex: 20, borderBottom: "2px solid rgba(0,0,0,0.04)" }}>
@@ -237,11 +239,11 @@ export default function TripPage() {
       {/* 탭 콘텐츠 */}
       <main className="tab-content-safe-bottom" style={{ flex: 1, maxWidth: 900, margin: "0 auto", width: "100%" }}>
         {activeTab === "bookings" && <BookingsTab trip={trip} nickname={nickname} />}
-        {activeTab === "itinerary" && <ItineraryTab trip={trip} nickname={nickname} />}
-        {activeTab === "map" && <MapTab trip={trip} />}
-        {activeTab === "info" && <InfoTab trip={trip} />}
-        {activeTab === "checklist" && <ChecklistTab trip={trip} nickname={nickname} />}
-        {activeTab === "expenses" && <ExpensesTab trip={trip} nickname={nickname} />}
+        {activeTab === "itinerary" && <ItineraryTab trip={trip} nickname={nickname} shareId={shareId} />}
+        {activeTab === "map" && <MapTab trip={trip} nickname={nickname} shareId={shareId} />}
+        {activeTab === "info" && <InfoTab trip={trip} nickname={nickname} shareId={shareId} />}
+        {activeTab === "checklist" && <ChecklistTab trip={trip} nickname={nickname} shareId={shareId} />}
+        {activeTab === "expenses" && <ExpensesTab trip={trip} nickname={nickname} shareId={shareId} />}
       </main>
 
       <div style={{ height: "env(safe-area-inset-bottom, 0)" }} />

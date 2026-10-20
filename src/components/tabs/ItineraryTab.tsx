@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import ItineraryPhotos from "./ItineraryPhotos";
 import ItineraryComments from "./ItineraryComments";
+import NicknameBadge from "@/components/NicknameBadge";
 
 const CATEGORIES = [
   { id: "food", label: "음식", emoji: "🍜" },
@@ -239,7 +240,7 @@ function TimePicker({ value, onChange }: { value: string; onChange: (v: string) 
   );
 }
 
-export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: string }) {
+export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; nickname: string; shareId?: string }) {
   const days = useQuery(api.itinerary.listDaysByTrip, { tripId: trip._id });
   const allItems = useQuery(api.itinerary.listItemsByTrip, { tripId: trip._id });
   const savedPlaces = useQuery(api.places.listPlacesByTrip, { tripId: trip._id });
@@ -1078,7 +1079,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "rgba(255,255,255,0.75)", backdropFilter: "blur(12px)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
+            {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
+          </div>
           {days.some((d: any) => getItemsForDay(d._id).filter((it: any) => it.placeLat && it.placeLng).length >= 2) && (
             <button onClick={() => setShowNavDayPicker(true)}
               style={{ padding: "5px 12px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(0,0,0,0.06)", color: "var(--text-secondary)" }}>

@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import NicknameBadge from "@/components/NicknameBadge";
 
-export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: string }) {
+export default function ChecklistTab({ trip, nickname, shareId }: { trip: any; nickname: string; shareId?: string }) {
   const items = useQuery(api.places.listChecklistsByTrip, { tripId: trip._id });
   const participants = useQuery(api.participants.listByTrip, { tripId: trip._id });
   const addItem = useMutation(api.places.addChecklist);
@@ -101,7 +102,10 @@ export default function ChecklistTab({ trip, nickname }: { trip: any; nickname: 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>✅ 체크리스트</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>✅ 체크리스트</h2>
+          {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
+        </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {total > 0 && <span className={`badge ${pct === 100 ? "" : "badge-gray"}`} style={{ background: pct === 100 ? "var(--coral)" : "rgba(0,0,0,0.06)", color: "#1a1a1a" }}>{done}/{total} 완료</span>}
         </div>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import NicknameBadge from "@/components/NicknameBadge";
 
 // 주요 도시 → IANA timezone 매핑
 const CITY_TIMEZONE: Record<string, string> = {
@@ -44,7 +45,7 @@ interface WeatherData {
   forecast: { date: string; minTemp: number; maxTemp: number; icon: string; description: string; }[];
 }
 
-export default function InfoTab({ trip }: { trip: any }) {
+export default function InfoTab({ trip, nickname, shareId }: { trip: any; nickname?: string; shareId?: string }) {
   // ─── 날씨 ─────────
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -150,7 +151,10 @@ export default function InfoTab({ trip }: { trip: any }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* ═══ 타이틀 + 날씨 검색 (한 줄) ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <h2 style={{ fontWeight: 900, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>ℹ️ 여행 정보</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontWeight: 900, fontSize: "1.1rem", letterSpacing: "-0.02em" }}>ℹ️ 여행 정보</h2>
+          {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
+        </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input className="input" placeholder="도시명" value={city}
             onChange={e => setCity(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchWeather(city)}

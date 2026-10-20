@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { analyzeImage } from "@/components/ImageUploader";
+import NicknameBadge from "@/components/NicknameBadge";
 
 const CATEGORIES = [
   { id: "food", label: "식비", emoji: "🍱" },
@@ -12,7 +13,7 @@ const CATEGORIES = [
   { id: "other", label: "기타", emoji: "🛒" },
 ];
 
-export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: string }) {
+export default function ExpensesTab({ trip, nickname, shareId }: { trip: any; nickname: string; shareId?: string }) {
   const expenses = useQuery(api.expenses.listByTrip, { tripId: trip._id });
   const participantsList = useQuery(api.participants.listByTrip, { tripId: trip._id });
   const addExpense = useMutation(api.expenses.add);
@@ -207,7 +208,10 @@ export default function ExpensesTab({ trip, nickname }: { trip: any; nickname: s
       {/* 헤더 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>💰 지출 및 정산</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>💰 지출 및 정산</h2>
+            {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
+          </div>
           <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 4 }}>기준 통화: {trip.currency || "USD"}</p>
         </div>
         <button className="btn-primary" onClick={() => setShowForm(true)} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 지출 추가</button>
