@@ -172,13 +172,11 @@ function ItemRating({ item, nickname, onRate }: { item: any; nickname: string; o
           <button onClick={() => setEditing(false)} style={{ background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", width: 22, height: 22, cursor: "pointer", color: "var(--text-secondary)", fontSize: "0.7rem", flexShrink: 0 }}>✕</button>
         </div>
       ) : (
-        <button onClick={() => setEditing(true)}
-          style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 4, background: myScore > 0 ? "rgba(245,158,11,0.1)" : "rgba(0,0,0,0.04)", border: "none", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontSize: "0.76rem", fontWeight: 700, color: myScore > 0 ? "var(--warning)" : "var(--text-muted)" }}>
-          {myScore > 0 ? `⭐ ${nickname} ${myScore.toFixed(1)}점` : "별점 매기기"}
-        </button>
-      )}
-      {others.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingLeft: 2 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setEditing(true)}
+            style={{ display: "flex", alignItems: "center", gap: 4, background: myScore > 0 ? "rgba(245,158,11,0.1)" : "rgba(0,0,0,0.04)", border: "none", borderRadius: 999, padding: "4px 10px", cursor: "pointer", fontSize: "0.76rem", fontWeight: 700, color: myScore > 0 ? "var(--warning)" : "var(--text-muted)" }}>
+            {myScore > 0 ? `⭐ ${nickname} ${myScore.toFixed(1)}점` : "별점 매기기"}
+          </button>
           {others.map((r: any) => (
             <span key={r.nickname} style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>⭐ {r.nickname} {r.score.toFixed(1)}점</span>
           ))}
@@ -1113,7 +1111,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
         )}
 
         {/* 상단 지도 영역 (경로 표시, 네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
-        <div style={{ position: "relative", margin: "0 -16px" }}>
+        <div style={{ position: "relative", margin: "0 -10px" }}>
         <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", flexShrink: 0, borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)", borderLeft: "none", borderRight: "none", position: "relative" }}>
           <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
           {!mapInstance && (

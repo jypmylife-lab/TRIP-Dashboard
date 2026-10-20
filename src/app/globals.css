@@ -296,10 +296,10 @@ label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 600; disp
   to { transform: translateY(0); opacity: 1; }
 }
 
-.tab-content-safe-bottom { padding: 24px 16px 80px; }
+.tab-content-safe-bottom { padding: 24px 10px 80px; }
 
 @media (max-width: 640px) {
-  .tab-content-safe-bottom { padding: 20px 16px 160px; padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
+  .tab-content-safe-bottom { padding: 20px 10px 160px; padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
 
   .tab-nav-wrapper {
     position: fixed !important;

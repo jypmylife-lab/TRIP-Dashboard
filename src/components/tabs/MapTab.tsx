@@ -482,7 +482,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
       </div>
 
       {/* 지도 표시 (네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
-      <div style={{ position: "relative", margin: "0 -16px" }}>
+      <div style={{ position: "relative", margin: "0 -10px" }}>
         <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)", borderLeft: "none", borderRight: "none" }}>
           {apiKey ? (
             <>
