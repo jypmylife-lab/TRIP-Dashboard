@@ -48,6 +48,24 @@ export const update = mutation({
   },
 });
 
+export const saveGateInfo = mutation({
+  args: {
+    flightId: v.id("flights"),
+    gateInfo: v.object({
+      flightStatus: v.optional(v.string()),
+      departureTerminal: v.optional(v.string()),
+      departureGate: v.optional(v.string()),
+      arrivalTerminal: v.optional(v.string()),
+      arrivalGate: v.optional(v.string()),
+      checkInCounterAuto: v.optional(v.string()),
+      error: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.flightId, { gateInfo: args.gateInfo, gateInfoFetchedAt: Date.now() });
+  },
+});
+
 export const remove = mutation({
   args: { flightId: v.id("flights") },
   handler: async (ctx, args) => {

@@ -39,6 +39,17 @@ export default defineSchema({
     notes: v.optional(v.string()),
     checkInCounter: v.optional(v.string()), // 체크인 카운터 (예: "D")
     createdAt: v.number(),
+    // 실시간 게이트/터미널 조회 결과 캐시 (외부 API 호출 횟수 제한 때문에 모든 참여자가 공유해서 재사용)
+    gateInfo: v.optional(v.object({
+      flightStatus: v.optional(v.string()),
+      departureTerminal: v.optional(v.string()),
+      departureGate: v.optional(v.string()),
+      arrivalTerminal: v.optional(v.string()),
+      arrivalGate: v.optional(v.string()),
+      checkInCounterAuto: v.optional(v.string()),
+      error: v.optional(v.string()),
+    })),
+    gateInfoFetchedAt: v.optional(v.number()),
   }).index("by_tripId", ["tripId"]),
 
   // 숙소

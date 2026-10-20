@@ -1079,7 +1079,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-primary)", paddingTop: 16, paddingBottom: 16, margin: "0 -20px", paddingLeft: 20, paddingRight: 20 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-primary)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
@@ -1586,10 +1586,11 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
                 <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
               </svg>
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="6" cy="7" r="2" fill="#1a1a1a" stroke="none" />
-                <circle cx="18" cy="17" r="2" fill="#1a1a1a" stroke="none" />
-                <path d="M6 9c0 4.5 7 2.5 7 6s2.5 1.5 5 2" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
               </svg>
             )}
           </button>

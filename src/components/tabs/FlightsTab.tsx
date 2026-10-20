@@ -157,7 +157,16 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
                   </div>
                 )}
 
-                {f.flightNumber && <FlightGateInfo flightNumber={f.flightNumber} departure={f.departure} date={f.date} />}
+                {f.flightNumber && (
+                  <FlightGateInfo
+                    flightId={f._id}
+                    flightNumber={f.flightNumber}
+                    departure={f.departure}
+                    date={f.date}
+                    cachedGateInfo={f.gateInfo}
+                    cachedFetchedAt={f.gateInfoFetchedAt}
+                  />
+                )}
               </div>
               );
             })}
@@ -227,24 +236,36 @@ export default function FlightsTab({ trip, nickname }: { trip: any; nickname: st
 
 // 실시간 게이트/터미널 조회 (AviationStack) - 출발 당일에 가까워져야 데이터가 채워짐
 // + 인천공항 출발편은 체크인 카운터도 함께 자동 조회 (인천국제공항공사 OpenAPI)
-function FlightGateInfo({ flightNumber, departure, date }: { flightNumber: string; departure?: string; date?: string }) {
-  const [loading, setLoading] = useState(true);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [checkInCounter, setCheckInCounter] = useState<string | null>(null);
+// 외부 API 호출 횟수 제한(월 한도) 때문에 결과를 Convex에 캐싱해서 전 참여자가 공유하고,
+// 캐시가 일정 시간 이내면 재호출하지 않음 (새로고침 버튼으로 강제 재조회는 가능)
+const GATE_INFO_TTL_MS = 6 * 60 * 60 * 1000; // 6시간
+
+function FlightGateInfo({ flightId, flightNumber, departure, date, cachedGateInfo, cachedFetchedAt }: {
+  flightId: any; flightNumber: string; departure?: string; date?: string;
+  cachedGateInfo?: any; cachedFetchedAt?: number;
+}) {
+  const saveGateInfo = useMutation(api.flights.saveGateInfo);
+  const isFresh = !!cachedFetchedAt && (Date.now() - cachedFetchedAt < GATE_INFO_TTL_MS);
+
+  const [loading, setLoading] = useState(!isFresh);
+  const [result, setResult] = useState<any>(isFresh ? cachedGateInfo : null);
+  const [fetchedAt, setFetchedAt] = useState<number | undefined>(isFresh ? cachedFetchedAt : undefined);
 
   async function handleCheck(e?: React.MouseEvent) {
     e?.stopPropagation();
-    setLoading(true); setError("");
+    setLoading(true);
+    const gateInfo: any = {};
     try {
       const res = await fetch(`/api/flight-status?flightNumber=${encodeURIComponent(flightNumber)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "조회 실패");
-      setResult(data);
+      gateInfo.flightStatus = data.flightStatus;
+      gateInfo.departureTerminal = data.departure?.terminal || undefined;
+      gateInfo.departureGate = data.departure?.gate || undefined;
+      gateInfo.arrivalTerminal = data.arrival?.terminal || undefined;
+      gateInfo.arrivalGate = data.arrival?.gate || undefined;
     } catch (err: any) {
-      setError(err.message || "조회 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+      gateInfo.error = err.message || "조회 중 오류가 발생했습니다.";
     }
 
     if (departure && /icn|인천/i.test(departure)) {
@@ -252,15 +273,32 @@ function FlightGateInfo({ flightNumber, departure, date }: { flightNumber: strin
         const q = new URLSearchParams({ flightNumber, departure, date: date || "" });
         const res = await fetch(`/api/checkin-counter?${q.toString()}`);
         const data = await res.json();
-        if (res.ok) setCheckInCounter(data.checkInCounter);
+        if (res.ok) gateInfo.checkInCounterAuto = data.checkInCounter;
       } catch {
         // 체크인 카운터는 보조 정보이므로 실패해도 조용히 무시
       }
     }
+
+    setResult(gateInfo);
+    setFetchedAt(Date.now());
+    setLoading(false);
+    saveGateInfo({ flightId, gateInfo }).catch(() => {});
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { handleCheck(); }, [flightNumber]);
+  useEffect(() => {
+    if (!isFresh) handleCheck();
+    // 캐시가 신선하면 조회를 건너뛰어 API 호출 횟수를 아낌
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flightNumber]);
+
+  const error = result?.error;
+  const updatedLabel = (() => {
+    if (!fetchedAt) return null;
+    const minutes = Math.round((Date.now() - fetchedAt) / 60000);
+    if (minutes < 1) return "방금 업데이트";
+    if (minutes < 60) return `${minutes}분 전 업데이트`;
+    return `${Math.round(minutes / 60)}시간 전 업데이트`;
+  })();
 
   return (
     <div style={{ padding: "10px 18px 14px", borderTop: "2px dashed rgba(0,0,0,0.06)" }} onClick={e => e.stopPropagation()}>
@@ -275,23 +313,31 @@ function FlightGateInfo({ flightNumber, departure, date }: { flightNumber: strin
           <button onClick={handleCheck} style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>다시 시도</button>
         </div>
       )}
-      {!loading && result && (
-        <div style={{ display: "grid", gridTemplateColumns: checkInCounter ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8 }}>
-          <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
-            <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>출발 터미널 · 게이트</div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.departure.terminal || "-"} · {result.departure.gate || "-"}</div>
+      {!loading && result && !error && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: result.checkInCounterAuto ? "1fr 1fr 1fr" : "1fr 1fr", gap: 8 }}>
+            <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>출발 터미널 · 게이트</div>
+              <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.departureTerminal || "-"} · {result.departureGate || "-"}</div>
+            </div>
+            {result.checkInCounterAuto && (
+              <div style={{ background: "rgba(99,102,241,0.08)", borderRadius: 8, padding: "8px 10px" }}>
+                <div style={{ fontSize: "0.66rem", color: "var(--accent)", fontWeight: 700, marginBottom: 2 }}>체크인 카운터</div>
+                <div style={{ fontSize: "0.9rem", fontWeight: 800, color: "var(--accent)" }}>{result.checkInCounterAuto}</div>
+              </div>
+            )}
+            <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>도착 터미널 · 게이트</div>
+              <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.arrivalTerminal || "-"} · {result.arrivalGate || "-"}</div>
+            </div>
           </div>
-          {checkInCounter && (
-            <div style={{ background: "rgba(99,102,241,0.08)", borderRadius: 8, padding: "8px 10px" }}>
-              <div style={{ fontSize: "0.66rem", color: "var(--accent)", fontWeight: 700, marginBottom: 2 }}>체크인 카운터</div>
-              <div style={{ fontSize: "0.9rem", fontWeight: 800, color: "var(--accent)" }}>{checkInCounter}</div>
+          {updatedLabel && (
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6, marginTop: 6 }}>
+              <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{updatedLabel}</span>
+              <button onClick={handleCheck} style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>🔄 새로고침</button>
             </div>
           )}
-          <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 8, padding: "8px 10px" }}>
-            <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2 }}>도착 터미널 · 게이트</div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 800 }}>{result.arrival.terminal || "-"} · {result.arrival.gate || "-"}</div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
