@@ -304,6 +304,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [navHeading, setNavHeading] = useState(0);
   const navHeadingListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
   const [navOverviewMode, setNavOverviewMode] = useState(false);
+  const [navElevCollapsed, setNavElevCollapsed] = useState(false);
+  const navSheetDragStartYRef = useRef<number | null>(null);
   const lastNavPosRef = useRef<{ lat: number; lng: number } | null>(null);
   // 수동으로 구간을 선택(혹은 자동으로 복귀)했을 때 즉시 안내/지도를 갱신하기 위한 콜백 (지도 초기화 이펙트 안에서 채워짐)
   const recomputeNavProgressRef = useRef<(stepIdx: number | null) => void>(() => {});
@@ -580,6 +582,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       setNavAutoFollow(true);
       setManualStepIdx(null);
       setNavOverviewMode(false);
+      setNavElevCollapsed(false);
       setNavProgress(data.steps?.length ? { stepIdx: 0, remainingDistanceM: data.distanceMeters || 0, remainingDurationS: data.durationSeconds || 0 } : null);
       setNavData({
         day,
@@ -712,6 +715,20 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
         map.setZoom(17);
       }
     }
+  }
+
+  // 하단 시트 손잡이를 아래로 끌면 고도 그래프를 숨기고, 위로 끌면 다시 보여줌 (네이버 지도 내비게이션 스타일)
+  function handleNavSheetPointerDown(e: React.PointerEvent) {
+    navSheetDragStartYRef.current = e.clientY;
+  }
+  function handleNavSheetPointerMove(e: React.PointerEvent) {
+    if (navSheetDragStartYRef.current === null) return;
+    const delta = e.clientY - navSheetDragStartYRef.current;
+    if (delta > 24) { setNavElevCollapsed(true); navSheetDragStartYRef.current = null; }
+    else if (delta < -24) { setNavElevCollapsed(false); navSheetDragStartYRef.current = null; }
+  }
+  function handleNavSheetPointerUp() {
+    navSheetDragStartYRef.current = null;
   }
 
   // 내비게이션 전체화면 지도 초기화: 경로 + 장소 마커를 그리고, 내 실시간 위치를 계속 따라가며 중심을 맞춤
@@ -1462,14 +1479,9 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
       {navData && (
         <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f172a", display: "flex", flexDirection: "column" }}>
-          {/* 상단 턴바이턴 안내 배너 */}
+          {/* 상단 턴바이턴 안내 배너 - 닫기(X) 버튼은 배너 우측에 붙여서, DAY 라벨 줄 없이 최대한 위로 올림 */}
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "8px 10px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ color: "#fff", fontSize: "0.78rem", fontWeight: 800, opacity: 0.85 }}>🧭 {navData.dayLabel} 경로</span>
-              <button onClick={handleCloseNavigation}
-                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
-            </div>
-            {navManeuver && (
+            {navManeuver ? (
               <div style={{ background: "#2563eb", borderRadius: 16, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
                 <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
@@ -1477,12 +1489,19 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                     <path d="M12 19V5" /><path d="M6 11l6-6 6 6" />
                   </svg>
                 </div>
-                <div style={{ color: "#fff" }}>
+                <div style={{ color: "#fff", flex: 1 }}>
                   <div style={{ fontSize: "1.05rem", fontWeight: 900 }}>{navManeuver.label}</div>
                   <div style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.9 }}>
                     {navDistToTurn < 1000 ? `${Math.round(navDistToTurn)}m` : `${(navDistToTurn / 1000).toFixed(1)}km`}
                   </div>
                 </div>
+                <button onClick={handleCloseNavigation}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", fontSize: "0.95rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={handleCloseNavigation}
+                  style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", fontSize: "0.95rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
               </div>
             )}
             {/* 지금 가는 곳 선택 - 탭하면 그 장소로 향하는 구간 기준으로 안내가 바뀌고, 이미 선택된 걸 다시 탭하면 자동(GPS 기준)으로 돌아감 */}
@@ -1525,7 +1544,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
 
           {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
-          <div style={{ position: "absolute", right: 14, top: navManeuver ? 160 : 92, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ position: "absolute", right: 14, top: navManeuver ? 124 : 56, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={handleToggleNavMapType} title="지도 유형"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1572,9 +1591,14 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             )}
           </button>
 
-          {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 */}
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "10px 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+          {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 (손잡이를 아래로 끌면 고도 그래프가 숨겨짐) */}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "0 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)" }}>
+            <div
+              onPointerDown={handleNavSheetPointerDown}
+              onPointerMove={handleNavSheetPointerMove}
+              onPointerUp={handleNavSheetPointerUp}
+              onPointerCancel={handleNavSheetPointerUp}
+              style={{ display: "flex", justifyContent: "center", padding: "10px 0 8px", cursor: "grab", touchAction: "none" }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.15)" }} />
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
@@ -1583,7 +1607,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
               <span style={{ fontSize: "0.9rem", color: "var(--text-muted)", fontWeight: 600 }}>{navEtaLabel} 도착</span>
             </div>
             {elevLinePoints.length > 1 && (
-              <>
+              <div style={{ maxHeight: navElevCollapsed ? 0 : ELEV_H + 24, overflow: "hidden", transition: "max-height 0.3s ease" }}>
                 <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 700, marginBottom: 2, display: "flex", alignItems: "center", gap: 4 }}>
                   고도 그래프 (m)
                 </div>
@@ -1594,7 +1618,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                   <circle cx={elevLinePoints[elevLinePoints.length - 1].x} cy={elevLinePoints[elevLinePoints.length - 1].y} r="4" fill="#f43f5e" />
                   <circle cx={elevProgressX} cy={elevProgressY} r="4.5" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
                 </svg>
-              </>
+              </div>
             )}
           </div>
         </div>
