@@ -1100,9 +1100,9 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
           </div>
         )}
 
-        {/* 상단 지도 영역 (경로 표시) */}
-        <div style={{ position: "relative" }}>
-        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", flexShrink: 0, border: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
+        {/* 상단 지도 영역 (경로 표시, 네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
+        <div style={{ position: "relative", margin: "0 -16px" }}>
+        <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", flexShrink: 0, borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)", position: "relative" }}>
           <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
           {!mapInstance && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", color: "var(--text-muted)", fontSize: "0.85rem" }}>
@@ -1586,11 +1586,10 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
                 <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
               </svg>
             ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
-                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
-                <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
-                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="5" cy="19" r="2.1" fill="#1a1a1a" stroke="none" />
+                <path d="M5 16.8V9a2 2 0 0 1 2-2h8" />
+                <path d="M12 4l3 3-3 3" />
               </svg>
             )}
           </button>

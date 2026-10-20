@@ -35,6 +35,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
   const [saving, setSaving] = useState(false);
   const [mapError, setMapError] = useState("");
   const [selectedCat, setSelectedCat] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [resolvingLink, setResolvingLink] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [scheduleTarget, setScheduleTarget] = useState<any | null>(null);
@@ -480,9 +481,9 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
       </div>
 
-      {/* 지도 표시 */}
-      <div style={{ position: "relative" }}>
-        <div className="glass" style={{ borderRadius: 20, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", border: "2px solid rgba(0,0,0,0.08)" }}>
+      {/* 지도 표시 (네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
+      <div style={{ position: "relative", margin: "0 -16px" }}>
+        <div className="glass" style={{ borderRadius: 0, overflow: "hidden", height: isMapExpanded ? "70vh" : 200, transition: "height 0.4s cubic-bezier(0.4, 0, 0.2, 1)", position: "relative", borderTop: "2px solid rgba(0,0,0,0.08)", borderBottom: "2px solid rgba(0,0,0,0.08)" }}>
           {apiKey ? (
             <>
               <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
@@ -618,31 +619,60 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         </button>
       </div>
 
-      {/* 카테고리 필터 UI - 항상 표시 */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 4, marginTop: 8 }}>
-        <button onClick={() => { setSelectedCat("all"); setFocusedId(null); }}
-          style={{
-            padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
-            background: selectedCat === "all" ? "var(--lavender)" : "#ffffff",
-            color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
-            borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.08)",
-            boxShadow: selectedCat === "all" ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
-          }}>
-          모두
-        </button>
-        {CATEGORIES.map(c => (
-          <button key={c.id} onClick={() => { setSelectedCat(c.id); setFocusedId(null); }}
+      {/* 카테고리 필터 UI - 기본은 "모두"+햄버거만 노출, 햄버거를 누르면 세부 항목이 펼쳐짐 */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4, marginTop: 8 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => { setSelectedCat("all"); setFocusedId(null); }}
             style={{
               padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
-              background: selectedCat === c.id ? "var(--lavender)" : "#ffffff",
-              color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
-              borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.08)",
-              boxShadow: selectedCat === c.id ? "none" : "0 1px 2px rgba(0,0,0,0.05)",
-              display: "flex", alignItems: "center", gap: 4
+              background: selectedCat === "all" ? "var(--lavender)" : "#ffffff",
+              color: selectedCat === "all" ? "#1a1a1a" : "var(--text-secondary)",
+              borderColor: selectedCat === "all" ? "var(--lavender)" : "rgba(0,0,0,0.08)",
+              boxShadow: selectedCat === "all" ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
             }}>
-            {c.emoji} {c.label}
+            모두
           </button>
-        ))}
+          {selectedCat !== "all" && !showFilters && (
+            <button onClick={() => setShowFilters(true)}
+              style={{
+                padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid",
+                background: "var(--lavender)", color: "#1a1a1a", borderColor: "var(--lavender)",
+                display: "flex", alignItems: "center", gap: 4
+              }}>
+              {CATEGORIES.find(c => c.id === selectedCat)?.emoji} {CATEGORIES.find(c => c.id === selectedCat)?.label}
+            </button>
+          )}
+          <button onClick={() => setShowFilters(v => !v)} title="필터"
+            style={{
+              width: 32, height: 32, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "1px solid",
+              background: showFilters ? "var(--lavender)" : "#ffffff",
+              borderColor: showFilters ? "var(--lavender)" : "rgba(0,0,0,0.08)",
+              boxShadow: showFilters ? "none" : "0 1px 2px rgba(0,0,0,0.05)"
+            }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2.3" strokeLinecap="round">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+        </div>
+        {showFilters && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {CATEGORIES.map(c => (
+              <button key={c.id} onClick={() => { setSelectedCat(c.id); setFocusedId(null); }}
+                style={{
+                  padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+                  background: selectedCat === c.id ? "var(--lavender)" : "#ffffff",
+                  color: selectedCat === c.id ? "#1a1a1a" : "var(--text-secondary)",
+                  borderColor: selectedCat === c.id ? "var(--lavender)" : "rgba(0,0,0,0.08)",
+                  boxShadow: selectedCat === c.id ? "none" : "0 1px 2px rgba(0,0,0,0.05)",
+                  display: "flex", alignItems: "center", gap: 4
+                }}>
+                {c.emoji} {c.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 장소 목록 */}
