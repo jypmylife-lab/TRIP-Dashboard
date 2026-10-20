@@ -788,8 +788,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       const stepIdx = computeBestStepIdx(me, manualIdx);
       const prog = computeProgress(stepIdx, me);
       if (prog) setNavProgress(prog);
-      const target = navData!.steps[stepIdx]?.end;
-      if (target) map.panTo(target);
+      // 지도는 그대로 "내 위치" 기준을 유지함 - 선택한 장소 쪽으로 지도를 옮기지 않고 안내 정보만 바뀜
     };
 
     // 전체 경로가 다 보이도록 축소하지 않고, 실제 내비게이션처럼 내 위치 기준으로 가깝게 확대된 상태를 유지함 (zoom: 17)
@@ -1464,23 +1463,23 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       {navData && (
         <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0f172a", display: "flex", flexDirection: "column" }}>
           {/* 상단 턴바이턴 안내 배너 */}
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "14px 14px 0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ color: "#fff", fontSize: "0.8rem", fontWeight: 800, opacity: 0.85 }}>🧭 {navData.dayLabel} 경로</span>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, padding: "8px 10px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ color: "#fff", fontSize: "0.78rem", fontWeight: 800, opacity: 0.85 }}>🧭 {navData.dayLabel} 경로</span>
               <button onClick={handleCloseNavigation}
-                style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1.1rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
+                style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", fontSize: "1rem", cursor: "pointer", flexShrink: 0 }}>✕</button>
             </div>
             {navManeuver && (
-              <div style={{ background: "#2563eb", borderRadius: 18, padding: "16px 18px", display: "flex", alignItems: "center", gap: 16, boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+              <div style={{ background: "#2563eb", borderRadius: 16, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, boxShadow: "0 8px 20px rgba(0,0,0,0.3)" }}>
+                <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
                     style={{ transform: `rotate(${navManeuver.rotation}deg)` }}>
                     <path d="M12 19V5" /><path d="M6 11l6-6 6 6" />
                   </svg>
                 </div>
                 <div style={{ color: "#fff" }}>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 900 }}>{navManeuver.label}</div>
-                  <div style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
+                  <div style={{ fontSize: "1.05rem", fontWeight: 900 }}>{navManeuver.label}</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.9 }}>
                     {navDistToTurn < 1000 ? `${Math.round(navDistToTurn)}m` : `${(navDistToTurn / 1000).toFixed(1)}km`}
                   </div>
                 </div>
@@ -1488,8 +1487,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
             )}
             {/* 지금 가는 곳 선택 - 탭하면 그 장소로 향하는 구간 기준으로 안내가 바뀌고, 이미 선택된 걸 다시 탭하면 자동(GPS 기준)으로 돌아감 */}
             {navData && navData.places.length > 1 && (
-              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10, padding: "8px", background: "rgba(0,0,0,0.35)", borderRadius: 14 }}>
-                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.75)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳</span>
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 6, paddingBottom: 2 }}>
                 {navData.places.slice(1).map((p: any, idx: number) => {
                   const placeNum = idx + 2; // 지도 마커 번호(1부터)와 맞춤; 이 배열은 places[1]부터 시작하므로 +2
                   const legIdx = idx; // places[idx+1]로 향하는 구간 = legStartStepIdx[idx]
@@ -1511,7 +1509,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                       style={{
                         flexShrink: 0, display: "flex", alignItems: "center", minHeight: 32, padding: "6px 12px", borderRadius: 999,
                         fontSize: "0.78rem", fontWeight: 800, whiteSpace: "nowrap", cursor: "pointer",
-                        border: active ? "none" : "1px solid rgba(0,0,0,0.08)",
+                        border: active ? "1px solid rgba(255,255,255,0.5)" : "1px solid rgba(0,0,0,0.08)",
                         background: active ? "#2563eb" : "#ffffff",
                         color: active ? "#ffffff" : "#1a1a1a",
                         boxShadow: active ? "0 2px 8px rgba(37,99,235,0.5)" : "0 1px 3px rgba(0,0,0,0.15)",
@@ -1527,7 +1525,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           <div ref={navMapRef} style={{ width: "100%", height: "100%" }} />
 
           {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
-          <div style={{ position: "absolute", right: 14, top: navManeuver ? 210 : 116, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ position: "absolute", right: 14, top: navManeuver ? 160 : 92, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={handleToggleNavMapType} title="지도 유형"
               style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
