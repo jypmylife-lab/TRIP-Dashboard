@@ -256,6 +256,8 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
 
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [focusedDayId, setFocusedDayId] = useState<string | null>(null);
+  const dayCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const [dragItem, setDragItem] = useState<any>(null);
   const [dragOverItem, setDragOverItem] = useState<any>(null);
   const [reorderItem, setReorderItem] = useState<string | null>(null);
@@ -862,6 +864,16 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
       } else {
         n.add(dayId);
         setFocusedDayId(dayId);
+        // 펼친 DAY 카드가 고정 헤더 바로 아래로 올라오도록 스크롤 (레이아웃이 반영된 뒤 실행)
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const el = dayCardRefs.current[dayId];
+            if (!el) return;
+            const stickyH = stickyHeaderRef.current?.getBoundingClientRect().height || 0;
+            const top = el.getBoundingClientRect().top + window.scrollY - stickyH - 12;
+            window.scrollTo({ top, behavior: "smooth" });
+          });
+        });
       }
       return n;
     });
@@ -1079,7 +1091,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* 텍스트와 지도를 포함하는 Sticky 컨테이너 */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-primary)" }}>
+      <div ref={stickyHeaderRef} style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", flexDirection: "column", gap: 12, background: "var(--bg-primary)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>🗓️ 일정</h2>
@@ -1167,7 +1179,7 @@ export default function ItineraryTab({ trip, nickname, shareId }: { trip: any; n
             const dayItems = getItemsForDay(day._id);
             const td = tripDays.find(t => t.dayNumber === day.dayNumber);
             return (
-              <div key={day._id} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
+              <div key={day._id} ref={el => { dayCardRefs.current[day._id] = el; }} className="glass" style={{ overflow: "hidden", border: "2px solid rgba(0,0,0,0.08)", borderRadius: 20 }}>
                 {/* DAY 헤더 */}
                 <div onClick={() => { 
                   if (!expandedDays.has(day._id)) toggleDay(day._id); 
