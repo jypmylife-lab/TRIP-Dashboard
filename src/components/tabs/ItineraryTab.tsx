@@ -303,6 +303,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
   const [navHeadingMode, setNavHeadingMode] = useState(false);
   const [navHeading, setNavHeading] = useState(0);
   const navHeadingListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
+  const [navOverviewMode, setNavOverviewMode] = useState(false);
+  const lastNavPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  // 수동으로 구간을 선택(혹은 자동으로 복귀)했을 때 즉시 안내/지도를 갱신하기 위한 콜백 (지도 초기화 이펙트 안에서 채워짐)
+  const recomputeNavProgressRef = useRef<(stepIdx: number | null) => void>(() => {});
 
   const tripDays = useMemo(() => getDaysBetween(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
   const existingDayNumbers = useMemo(() => new Set(days?.map(d => d.dayNumber) || []), [days]);
@@ -575,6 +579,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
 
       setNavAutoFollow(true);
       setManualStepIdx(null);
+      setNavOverviewMode(false);
       setNavProgress(data.steps?.length ? { stepIdx: 0, remainingDistanceM: data.distanceMeters || 0, remainingDurationS: data.durationSeconds || 0 } : null);
       setNavData({
         day,
@@ -618,6 +623,8 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     setNavHeadingMode(false);
     setNavHeading(0);
     setManualStepIdx(null);
+    setNavOverviewMode(false);
+    lastNavPosRef.current = null;
   }
 
   // 재조준 버튼: 평소엔 "나를 중심으로" 추적을 다시 켜고, 이미 추적 중일 때 한 번 더 누르면
@@ -685,6 +692,28 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
     });
   }
 
+  // 좌측 하단 버튼: 전체 경로가 한눈에 보이게 축소 ↔ 다시 내 위치로 가깝게 확대
+  function handleToggleOverview() {
+    const map = navMapInstanceRef.current;
+    if (!map || !navData) return;
+    const google = (window as any).google;
+    if (!navOverviewMode) {
+      setNavAutoFollow(false);
+      const bounds = new google.maps.LatLngBounds();
+      navData.path.forEach((pt: any) => bounds.extend(pt));
+      map.fitBounds(bounds);
+      setNavOverviewMode(true);
+    } else {
+      setNavOverviewMode(false);
+      setNavAutoFollow(true);
+      const me = lastNavPosRef.current;
+      if (me) {
+        map.panTo(me);
+        map.setZoom(17);
+      }
+    }
+  }
+
   // 내비게이션 전체화면 지도 초기화: 경로 + 장소 마커를 그리고, 내 실시간 위치를 계속 따라가며 중심을 맞춤
   useEffect(() => {
     if (!navData || !navMapRef.current) return;
@@ -720,9 +749,48 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       });
       // 지도 위 번호 핀을 탭해도 그 장소로 향하는 구간으로 바로 전환됨 (상단 "지금 가는 곳" 알약과 동일한 동작)
       if (idx >= 1) {
-        marker.addListener("click", () => setManualStepIdx(navData.legStartStepIdx[idx - 1] ?? 0));
+        marker.addListener("click", () => {
+          const stepIdx = navData.legStartStepIdx[idx - 1] ?? 0;
+          setManualStepIdx(stepIdx);
+          recomputeNavProgressRef.current(stepIdx);
+        });
       }
     });
+
+    // 현재 구간(step) 인덱스를 찾아 남은 거리/시간을 계산 (manualIdx가 null이면 현재 위치 기준 자동 판단)
+    function computeBestStepIdx(me: { lat: number; lng: number } | null, manualIdx: number | null): number {
+      if (manualIdx !== null) return manualIdx;
+      if (!me) return 0;
+      let bestIdx = 0, bestDist = Infinity;
+      navData!.steps.forEach((s, i) => {
+        const d = distanceToSegmentMeters(me, s.start, s.end);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      });
+      return bestIdx;
+    }
+    function computeProgress(stepIdx: number, me: { lat: number; lng: number } | null) {
+      const current = navData!.steps[stepIdx];
+      if (!current) return null;
+      const distToStepEnd = me ? haversineMeters(me, current.end) : current.distanceMeters;
+      const fracRemaining = current.distanceMeters > 0 ? Math.min(1, distToStepEnd / current.distanceMeters) : 0;
+      let remainingDistanceM = distToStepEnd;
+      let remainingDurationS = current.durationSeconds * fracRemaining;
+      for (let i = stepIdx + 1; i < navData!.steps.length; i++) {
+        remainingDistanceM += navData!.steps[i].distanceMeters;
+        remainingDurationS += navData!.steps[i].durationSeconds;
+      }
+      return { stepIdx, remainingDistanceM, remainingDurationS };
+    }
+    // 알약/지도 핀 클릭 시 GPS 다음 신호를 기다리지 않고 바로 안내를 갱신 + 그 구간의 목적지로 지도를 이동시켜 즉각 반응하게 함
+    recomputeNavProgressRef.current = (manualIdx: number | null) => {
+      if (navData!.steps.length === 0) return;
+      const me = lastNavPosRef.current;
+      const stepIdx = computeBestStepIdx(me, manualIdx);
+      const prog = computeProgress(stepIdx, me);
+      if (prog) setNavProgress(prog);
+      const target = navData!.steps[stepIdx]?.end;
+      if (target) map.panTo(target);
+    };
 
     // 전체 경로가 다 보이도록 축소하지 않고, 실제 내비게이션처럼 내 위치 기준으로 가깝게 확대된 상태를 유지함 (zoom: 17)
 
@@ -734,6 +802,7 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
       navWatchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          lastNavPosRef.current = me;
           if (!navMeMarkerRef.current) {
             navMeMarkerRef.current = new google.maps.Marker({
               position: me, map,
@@ -745,30 +814,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           }
           if (navAutoFollowRef.current) map.panTo(me);
 
-          // 현재 안내 구간: 수동으로 "몇 번째 장소로 가는 중"을 선택했다면 그 값을 그대로 쓰고,
-          // 아니면(자동 모드) 현재 위치와 가장 가까운 구간을 자동으로 판단함 (GPS가 부정확하거나 실제 위치와 다를 때 수동 선택이 우선함)
-          if (navData.steps.length > 0) {
-            let bestIdx: number;
-            if (manualStepIdxRef.current !== null) {
-              bestIdx = manualStepIdxRef.current;
-            } else {
-              bestIdx = 0;
-              let bestDist = Infinity;
-              navData.steps.forEach((s, i) => {
-                const d = distanceToSegmentMeters(me, s.start, s.end);
-                if (d < bestDist) { bestDist = d; bestIdx = i; }
-              });
-            }
-            const current = navData.steps[bestIdx];
-            const distToStepEnd = haversineMeters(me, current.end);
-            const fracRemaining = current.distanceMeters > 0 ? Math.min(1, distToStepEnd / current.distanceMeters) : 0;
-            let remainingDistanceM = distToStepEnd;
-            let remainingDurationS = current.durationSeconds * fracRemaining;
-            for (let i = bestIdx + 1; i < navData.steps.length; i++) {
-              remainingDistanceM += navData.steps[i].distanceMeters;
-              remainingDurationS += navData.steps[i].durationSeconds;
-            }
-            setNavProgress({ stepIdx: bestIdx, remainingDistanceM, remainingDurationS });
+          if (navData!.steps.length > 0) {
+            const stepIdx = computeBestStepIdx(me, manualStepIdxRef.current);
+            const prog = computeProgress(stepIdx, me);
+            if (prog) setNavProgress(prog);
           }
         },
         (err) => console.warn("내비게이션 GPS 추적 실패", err),
@@ -1437,10 +1486,10 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                 </div>
               </div>
             )}
-            {/* 지금 가는 곳 선택 - 탭하면 그 장소로 향하는 구간 기준으로 안내가 바뀜 (GPS가 부정확하거나 실제 위치와 다를 때 유용) */}
+            {/* 지금 가는 곳 선택 - 탭하면 그 장소로 향하는 구간 기준으로 안내가 바뀌고, 이미 선택된 걸 다시 탭하면 자동(GPS 기준)으로 돌아감 */}
             {navData && navData.places.length > 1 && (
-              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10, paddingBottom: 2 }}>
-                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.7)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳:</span>
+              <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10, padding: "8px", background: "rgba(0,0,0,0.35)", borderRadius: 14 }}>
+                <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.75)", fontWeight: 700, alignSelf: "center", flexShrink: 0, marginRight: 2 }}>지금 가는 곳</span>
                 {navData.places.slice(1).map((p: any, idx: number) => {
                   const placeNum = idx + 2; // 지도 마커 번호(1부터)와 맞춤; 이 배열은 places[1]부터 시작하므로 +2
                   const legIdx = idx; // places[idx+1]로 향하는 구간 = legStartStepIdx[idx]
@@ -1453,18 +1502,24 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
                   })();
                   const active = currentLegIdx === legIdx;
                   return (
-                    <button key={p._id} onClick={() => setManualStepIdx(legStepStart)}
-                      style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: active ? "#2563eb" : "rgba(255,255,255,0.15)", color: "#fff" }}>
+                    <button key={p._id}
+                      onClick={() => {
+                        const next = active ? null : legStepStart;
+                        setManualStepIdx(next);
+                        recomputeNavProgressRef.current(next);
+                      }}
+                      style={{
+                        flexShrink: 0, display: "flex", alignItems: "center", minHeight: 32, padding: "6px 12px", borderRadius: 999,
+                        fontSize: "0.78rem", fontWeight: 800, whiteSpace: "nowrap", cursor: "pointer",
+                        border: active ? "none" : "1px solid rgba(0,0,0,0.08)",
+                        background: active ? "#2563eb" : "#ffffff",
+                        color: active ? "#ffffff" : "#1a1a1a",
+                        boxShadow: active ? "0 2px 8px rgba(37,99,235,0.5)" : "0 1px 3px rgba(0,0,0,0.15)",
+                      }}>
                       {placeNum}. {p.placeName}
                     </button>
                   );
                 })}
-                {manualStepIdx !== null && (
-                  <button onClick={() => setManualStepIdx(null)}
-                    style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 999, fontSize: "0.76rem", fontWeight: 800, border: "none", cursor: "pointer", background: "rgba(245,158,11,0.9)", color: "#fff" }}>
-                    📍 자동으로
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -1474,26 +1529,50 @@ export default function ItineraryTab({ trip, nickname }: { trip: any; nickname: 
           {/* 우측 플로팅 버튼: 지도 유형 전환 / 재조준(+나침반) / 경로 새로고침 */}
           <div style={{ position: "absolute", right: 14, top: navManeuver ? 210 : 116, zIndex: 10, display: "flex", flexDirection: "column", gap: 10 }}>
             <button onClick={handleToggleNavMapType} title="지도 유형"
-              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
-              {navMapType === "satellite" ? "🛰️" : "🗺️"}
+              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {navMapType === "satellite" ? (
+                  <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" /></>
+                ) : (
+                  <><path d="M12 3L3 8l9 5 9-5-9-5Z" /><path d="M3 12l9 5 9-5" /></>
+                )}
+              </svg>
             </button>
             <button onClick={handleRecenterNavigation} title={navHeadingMode ? "나침반 모드 끄기" : navAutoFollow ? "나침반 모드 켜기" : "내 위치로"}
               style={{ width: 44, height: 44, borderRadius: "50%", background: navHeadingMode ? "#f59e0b" : navAutoFollow ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {navHeadingMode ? (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2l3 7-3 13-3-13z" fill="#fff" stroke="none" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                  <path d="M12 2l4 9-4 11-4-11z" />
                 </svg>
               ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="7" strokeOpacity="0.4" /><circle cx="12" cy="12" r="2" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={navAutoFollow ? "#fff" : "#4285F4"} strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="3" fill={navAutoFollow ? "#fff" : "#4285F4"} stroke="none" />
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
                 </svg>
               )}
             </button>
             <button onClick={() => navData && handleStartNavigation(navData.day)} title="경로 새로고침"
-              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>
-              🔄
+              style={{ width: 44, height: 44, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-2.6-6.3" /><path d="M21 4v5h-5" />
+              </svg>
             </button>
           </div>
+
+          {/* 좌측 하단 버튼: 경로 전체 보기 ↔ 내 위치로 복귀 */}
+          <button onClick={handleToggleOverview} title={navOverviewMode ? "내 위치로" : "전체 경로 보기"}
+            style={{ position: "absolute", left: 14, bottom: 150, zIndex: 10, width: 44, height: 44, borderRadius: "50%", background: navOverviewMode ? "#2563eb" : "#fff", border: "none", boxShadow: "0 2px 10px rgba(0,0,0,0.3)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {navOverviewMode ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="3" fill="#fff" stroke="none" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3" />
+              </svg>
+            )}
+          </button>
 
           {/* 하단 시트: 남은 거리/시간/도착예정 + 고도 그래프 */}
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10, background: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "10px 18px 18px", boxShadow: "0 -8px 24px rgba(0,0,0,0.25)" }}>
