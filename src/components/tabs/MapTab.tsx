@@ -82,16 +82,16 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
     if (showForm && formNameInputRef.current && (window as any).google?.maps?.places) {
       const google = (window as any).google;
       const ac = new google.maps.places.Autocomplete(formNameInputRef.current, {
-        fields: ["name", "formatted_address", "geometry", "url"]
+        fields: ["name", "formatted_address", "geometry", "url", "rating", "user_ratings_total"]
       });
-      
+
       // 지도가 있으면 검색 범위를 지도로 제한
       if (mapInstance) ac.bindTo("bounds", mapInstance);
-      
+
       const listener = ac.addListener("place_changed", () => {
         const place = ac.getPlace();
         if (!place.geometry || !place.geometry.location) return;
-        
+
         setForm(f => ({
           ...f,
           name: place.name || f.name,
@@ -99,6 +99,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
           mapLink: place.url || f.mapLink,
         }));
         setTempLatLng({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() });
+        setTempRating(typeof place.rating === "number" ? place.rating : null);
+        setTempRatingsTotal(typeof place.rating === "number" ? (place.user_ratings_total ?? null) : null);
       });
 
       return () => {
@@ -326,16 +328,21 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         lat = tempLatLng.lat;
         lng = tempLatLng.lng;
       } else if ((lat === undefined || lng === undefined) && form.name) {
+        // Places API는 브라우저에서 직접 호출하면 CORS로 막히므로 서버 라우트를 통해 좌표와 평점을 가져옴
         try {
-          const query = encodeURIComponent(`${form.name} ${form.address || trip.destination}`);
-          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${apiKey}`);
+          const query = `${form.name} ${form.address || trip.destination}`;
+          const res = await fetch(`/api/places-search?query=${encodeURIComponent(query)}`);
           const data = await res.json();
-          if (data.results && data.results.length > 0) {
-            lat = data.results[0].geometry.location.lat;
-            lng = data.results[0].geometry.location.lng;
+          if (data.lat && data.lng) {
+            lat = data.lat;
+            lng = data.lng;
+          }
+          if (typeof data.rating === "number") {
+            resolvedRating = data.rating;
+            resolvedRatingsTotal = data.ratingsTotal ?? undefined;
           }
         } catch (e) {
-          console.warn("Geocode auto-fetch failed", e);
+          console.warn("Place search auto-fetch failed", e);
         }
       }
 
