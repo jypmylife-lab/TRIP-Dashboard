@@ -21,7 +21,12 @@ export async function GET(req: Request) {
     const res = await fetch(`https://v6.exchangerate-api.com/v6/${apiKey}/pair/${base}/KRW`);
     const data = await res.json();
     if (data.result !== "success") throw new Error("API 오류");
-    return NextResponse.json({ ok: true, rate: data.conversion_rate, base, target: "KRW", isFallback: false });
+    // 같은 통화 요청은 3시간 동안 Vercel CDN에서 공유 캐시되어, 탭을 열 때마다 매번 새로 호출하지 않도록 함
+    // (무료 플랜 월 호출 한도가 넉넉하지 않아 캐싱 없이는 금방 소진될 수 있음)
+    return NextResponse.json(
+      { ok: true, rate: data.conversion_rate, base, target: "KRW", isFallback: false },
+      { headers: { "Cache-Control": "public, max-age=10800, s-maxage=10800, stale-while-revalidate=3600" } }
+    );
   } catch {
     return NextResponse.json({ error: "환율 조회에 실패했습니다." }, { status: 500 });
   }

@@ -93,6 +93,8 @@ export async function GET(req: Request) {
       description: v.description,
     }));
 
+    // 같은 도시 요청은 1시간 동안 Vercel CDN에서 공유 캐시되어, 탭을 열 때마다
+    // 구글 지오코딩/Places + 오픈웨더맵을 매번 새로 호출하지 않도록 함
     return NextResponse.json({
       ok: true,
       city: resolvedName || currentData.name || forecastData.city.name,
@@ -107,7 +109,7 @@ export async function GET(req: Request) {
         windSpeed: currentData.wind.speed,
       },
       forecast,
-    });
+    }, { headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=1800" } });
   } catch {
     return NextResponse.json({ error: "날씨 조회 중 오류가 발생했습니다." }, { status: 500 });
   }
