@@ -502,12 +502,9 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
-          {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
-        </div>
-        <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setTempRating(null); setTempRatingsTotal(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <h2 style={{ fontWeight: 900, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>📍 지도</h2>
+        {nickname && shareId && <NicknameBadge trip={trip} nickname={nickname} shareId={shareId} />}
       </div>
 
       {/* 지도 표시 (네이버 지도처럼 좌우 여백 없이 꽉 채움) */}
@@ -650,7 +647,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
 
       {/* 카테고리 필터 UI - 기본은 "모두"+햄버거만 노출, 햄버거를 누르면 세부 항목이 펼쳐짐 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4, marginTop: 8 }}>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button onClick={() => { setSelectedCat("all"); setFocusedId(null); }}
             style={{
               padding: "6px 14px", borderRadius: 99, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
@@ -684,6 +682,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
               <line x1="4" y1="17" x2="20" y2="17" />
             </svg>
           </button>
+          </div>
+          <button className="btn-primary" onClick={() => { setEditingId(null); setForm({ name: "", address: "", mapLink: "", category: "attraction", notes: "" }); setTempLatLng(null); setTempRating(null); setTempRatingsTotal(null); setShowForm(true); }} style={{ padding: "7px 14px", fontSize: "0.78rem", minHeight: "auto" }}>+ 장소 추가</button>
         </div>
         {showFilters && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
