@@ -53,6 +53,9 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
   const [tempLatLng, setTempLatLng] = useState<{lat: number, lng: number} | null>(null);
   const [tempRating, setTempRating] = useState<number | null>(null);
   const [tempRatingsTotal, setTempRatingsTotal] = useState<number | null>(null);
+  // 이름 자동완성에서 장소를 선택하면 mapLink도 같이 채워지는데, 그 변화로 아래 디바운스 효과가
+  // 또 한 번 링크를 재조회하면서 방금 받은 평점을 null로 덮어쓰는 경쟁 상태가 생김 - 이를 막는 플래그
+  const skipNextLinkResolveRef = useRef(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const isMapExpandedRef = useRef(isMapExpanded);
   useEffect(() => { isMapExpandedRef.current = isMapExpanded; }, [isMapExpanded]);
@@ -92,6 +95,8 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
         const place = ac.getPlace();
         if (!place.geometry || !place.geometry.location) return;
 
+        // place.url을 채우면 아래 mapLink 디바운스 효과가 또 재조회하면서 지금 받은 평점을 덮어쓰므로, 그 재조회를 건너뜀
+        skipNextLinkResolveRef.current = true;
         setForm(f => ({
           ...f,
           name: place.name || f.name,
@@ -412,6 +417,7 @@ export default function MapTab({ trip, nickname, shareId }: { trip: any; nicknam
   // 블러/붙여넣기 이벤트에 의존하지 않고, 입력이 잠시 멈추면(600ms) 자동으로 한 번 더 확인 (모바일 브라우저의 blur 타이밍 불안정 대비)
   useEffect(() => {
     if (!showForm || !form.mapLink.startsWith("http")) return;
+    if (skipNextLinkResolveRef.current) { skipNextLinkResolveRef.current = false; return; }
     const handle = setTimeout(() => { handleMapLinkBlur(); }, 600);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
